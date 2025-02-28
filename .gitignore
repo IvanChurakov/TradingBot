@@ -10,3 +10,4 @@ venv/
 .env
 
 .idea/
+/data/historical_data/

@@ -1,11 +1,11 @@
-from bot.strategy import GridStrategy
+from bot.grid_strategy import GridStrategy
 from bot.trader import Trader
 from bot.risk_management import RiskManager
 from data.market_data import MarketData
-from data.historical_data import HistoricalData
 from configs.settings import Settings
 from pybit.unified_trading import HTTP
 import time
+import datetime
 from queue import Queue
 
 class GridBot:
@@ -19,8 +19,12 @@ class GridBot:
         )
 
         self.market_data = MarketData(self.http_session)
-        self.historical_data = HistoricalData(self.http_session)
+
+        now = datetime.datetime.now()
+        start_datetime = (now - datetime.timedelta(days=30)).strftime('%Y-%m-%d %H:%M:%S')
+        end_datetime = now.strftime('%Y-%m-%d %H:%M:%S')
         self.strategy = GridStrategy(self.settings)
+
         self.trader = Trader(self.http_session)
         self.risk_manager = RiskManager(self.settings)
 
@@ -38,10 +42,15 @@ class GridBot:
 
     def run_backtest(self):
         print("Starting Backtest...")
-        prices = self.historical_data.fetch_historical_data(
+
+        now = datetime.datetime.now()
+        start_datetime = (now - datetime.timedelta(days=30)).strftime('%Y-%m-%d %H:%M:%S')
+        end_datetime = now.strftime('%Y-%m-%d %H:%M:%S')
+
+        prices = self.market_data.fetch_data_for_period(
             symbol=self.settings.symbol,
-            interval="15",
-            days=30
+            start_datetime=start_datetime,
+            end_datetime=end_datetime
         )
 
         self.price_data = prices
@@ -107,7 +116,15 @@ class GridBot:
     def send_updates_to_ui(self):
         if self.data_queue:
             max_price_data = 500
-            price_data_limited = self.price_data[-max_price_data:]
+
+            if len(self.price_data) <= max_price_data:
+                price_data_limited = self.price_data
+            else:
+                step = len(self.price_data) // max_price_data
+                price_data_limited = self.price_data[::step]
+
+                if len(price_data_limited) > max_price_data:
+                    price_data_limited = price_data_limited[:max_price_data]
 
             self.data_queue.put({
                 "price_data": price_data_limited,
