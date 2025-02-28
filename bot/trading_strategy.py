@@ -1,8 +1,11 @@
+from configs.settings import Settings
+
+
 class TradingStrategy:
-    def __init__(self, settings):
-        self.settings = settings
+    def __init__(self):
+        self.settings = Settings()
         self.grid_levels = {"levels": [], "min": None, "max": None}
-        self.balance = 1000  # Повний баланс для торгівлі
+        self.balance = 200  # Повний баланс для торгівлі
         self.positions = []  # Список активних покупок
         self.trade_results = []  # Історія виконаних угод (купівля/продаж)
 
@@ -72,9 +75,6 @@ class TradingStrategy:
                       f"Sold Amount: {sale_amount:.2f}, Updated Balance: {self.balance:.2f}")
 
         return decisions
-
-    def update_grid_levels(self, grid_levels):
-        self.grid_levels = grid_levels
 
     def get_portfolio_balance(self, current_price):
         """

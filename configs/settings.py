@@ -17,9 +17,4 @@ class Settings:
         self.btc_per_trade = float(os.getenv("BTC_PER_TRADE", 0.0000314))
         self.buy_percentage = float(os.getenv("BUY_PERCENTAGE", 0.005))
         self.min_transaction_amount = float(os.getenv("MIN_TRANSACTION_AMOUNT", 5))
-        self.grid_spacing = float(os.getenv("GRID_SPACING", 1.0))
-        self.trade_interval = int(os.getenv("TRADE_INTERVAL", 60))  # in seconds
-
-        # Risk Management
-        self.max_balance_use = float(os.getenv("MAX_BALANCE_USE", 0.8))  # 80%
-        self.min_order_size = float(os.getenv("MIN_ORDER_SIZE", 0.001))  # minimal size
+        self.grid_historical_days = float(os.getenv("GRID_HISTORICAL_DAYS", 20))

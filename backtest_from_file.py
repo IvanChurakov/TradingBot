@@ -39,8 +39,8 @@ def backtest_task(args):
         return None  # Пропускаємо, якщо недостатньо попередніх даних
 
     # Ініціалізуємо стратегії
-    grid_strategy = GridStrategy(Settings())
-    trading_strategy = TradingStrategy(Settings())
+    grid_strategy = GridStrategy()
+    trading_strategy = TradingStrategy()
 
     # Початковий розрахунок грідів
     historical_prices = [item["close_price"] for item in historical_data_for_grid]
@@ -91,7 +91,7 @@ def backtest_task(args):
 
 def run_parallel_backtest(filepath, symbol, start_date, end_date, output_file):
     results = []  # Список для збереження результатів
-    days_options = list(range(14, 91))  # Періоди в днях для тестування грідів (від 14 до 90 днів)
+    days_options = list(range(15, 70))  # Періоди в днях для тестування грідів (від 14 до 90 днів)
     grid_levels_counts = range(20, 21)  # Значення grid_levels_count (від 5 до 200)
 
     # Список усіх можливих комбінацій параметрів

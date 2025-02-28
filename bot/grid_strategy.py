@@ -2,10 +2,8 @@ import numpy as np
 
 
 class GridStrategy:
-    def __init__(self, settings):
-        self.settings = settings
-
-    def calculate_grid_levels_with_percentile(self, historical_prices, grid_levels_count):
+    @staticmethod
+    def calculate_grid_levels_with_percentile(historical_prices, grid_levels_count):
         if not historical_prices or len(historical_prices) < 2:
             raise ValueError("Insufficient historical data to calculate grid levels")
 
@@ -26,7 +24,8 @@ class GridStrategy:
             "max": max_price
         }
 
-    def calculate_grid_levels_with_standard_deviation(self, historical_prices, grid_levels_count, k=2):
+    @staticmethod
+    def calculate_grid_levels_with_standard_deviation(historical_prices, grid_levels_count, k=2):
         if not historical_prices or len(historical_prices) < 2:
             raise ValueError("Insufficient historical data to calculate grid levels")
 
@@ -50,7 +49,8 @@ class GridStrategy:
             "max": max_price
         }
 
-    def calculate_grid_levels_bollinger(self, historical_prices, grid_levels_count, n_points=20, k=2):
+    @staticmethod
+    def calculate_grid_levels_bollinger(historical_prices, grid_levels_count, n_points=20, k=2):
         if len(historical_prices) < n_points:
             raise ValueError("Insufficient data points for Bollinger Bands calculation.")
 

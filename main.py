@@ -1,19 +1,11 @@
-from PyQt5.QtWidgets import QApplication
-from ui.main_window import MainWindow
-from configs.settings import Settings
-from pybit.unified_trading import HTTP
+from datetime import datetime
+from bot.grid_bot import GridBot
+
 
 if __name__ == "__main__":
-    app = QApplication([])
+    grid_bot = GridBot()
 
-    settings = Settings()
-    http_session = HTTP(
-        api_key=settings.api_key,
-        api_secret=settings.api_secret,
-        testnet=False
-    )
+    from_date = datetime(2025, 1, 1, 0, 0, 0)
+    to_date = datetime(2025, 2, 20, 17, 49, 0)
 
-    main_window = MainWindow(http_session)
-    main_window.show()
-
-    app.exec_()
+    grid_bot.run_backtest(from_date, to_date, use_real_data=False)

@@ -1,6 +1,9 @@
+from configs.settings import Settings
+
+
 class RiskManager:
-    def __init__(self, settings):
-        self.settings = settings
+    def __init__(self):
+        self.settings = Settings()
 
     def can_execute_trade(self, historical_prices):
         if not historical_prices or len(historical_prices) < 2:
