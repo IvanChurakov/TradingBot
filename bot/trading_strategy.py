@@ -5,6 +5,7 @@ class TradingStrategy:
     def __init__(self):
         self.settings = Settings()
         self.grid_levels = {"levels": [], "min": None, "max": None}
+        self.min_order_amount=0
         self.balance = 200  # Повний баланс для торгівлі
         self.positions = []  # Список активних покупок
         self.trade_results = []  # Історія виконаних угод (купівля/продаж)
@@ -27,11 +28,10 @@ class TradingStrategy:
         # 1. Купівля: якщо ціна входить у нижню зону гріду
         # Розрахунок суми для покупки як % від поточного балансу
         buy_percentage = self.settings.buy_percentage
-        min_transaction_amount = self.settings.min_transaction_amount
 
         # Розрахунок суми для покупки: або buy_percentage від балансу, або мінімальна сума
         calculated_amount_to_spend = self.balance * buy_percentage
-        amount_to_spend = max(calculated_amount_to_spend, min_transaction_amount)
+        amount_to_spend = max(calculated_amount_to_spend, self.min_order_amount)
 
         if lower_grid <= current_price < lower_buy_threshold and self.balance >= amount_to_spend:
             bought_amount = amount_to_spend / current_price  # Купівля активів на розраховану суму

@@ -6,6 +6,9 @@ from data.market_data import MarketData
 from configs.settings import Settings
 from pybit.unified_trading import HTTP
 
+from utils.datetime_utils import format_timestamp
+
+
 class GridBot:
     def __init__(self):
         self.settings = Settings()
@@ -58,7 +61,7 @@ class GridBot:
 
             # Перевіряємо, чи настав час для перерахунку грідів
             if timestamp >= next_grid_recalculation_time:
-                print(f"Recalculating grid levels at {timestamp}...")
+                print(f"Recalculating grid levels at {format_timestamp(timestamp)}...")
 
                 # Дані за останній період (наприклад, 30 днів) для перерахунку
                 start_time_for_calculation = timestamp - (self.settings.grid_historical_days * one_day_ms)
@@ -74,6 +77,13 @@ class GridBot:
                     self.trading_strategy.grid_levels = self.grid_strategy.calculate_grid_levels_with_percentile(
                         relevant_prices, self.settings.grid_levels_count
                     )
+
+                print(f"Retrieving min order amount at {format_timestamp(timestamp)}...")
+
+                if use_real_data:
+                    self.trading_strategy.min_order_amount = self.market_data.get_min_order_amt(self.settings.symbol)
+                else:
+                    self.trading_strategy.min_order_amount = self.settings.min_transaction_amount
 
                 next_grid_recalculation_time += recalculation_interval_ms
 

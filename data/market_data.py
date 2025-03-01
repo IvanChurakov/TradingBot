@@ -1,9 +1,20 @@
-import datetime
+from utils.datetime_utils import to_milliseconds_from_minutes, format_timestamp
 
 
 class MarketData:
     def __init__(self, http_session):
         self.http_session = http_session
+
+    def get_min_order_amt(self, symbol):
+        response = self.http_session.get_instruments_info(category="spot", symbol=symbol)
+
+        if response.get("retCode") == 0:
+            instruments = response.get("result", {}).get("list", [])
+            if instruments:
+                return float(instruments[0]["lotSizeFilter"]["minOrderAmt"])
+
+        print(f"Error fetching min order amount: {response.get('retMsg')}")
+        return 5
 
     def get_current_price(self, symbol):
         response = self.http_session.get_ticker(category="spot", symbol=symbol)
@@ -17,16 +28,16 @@ class MarketData:
     def fetch_data_for_period(self, symbol, start_datetime, end_datetime, interval="15"):
         try:
             historical_prices = []
-            interval_milliseconds = self._to_milliseconds_from_minutes(interval)
+            interval_milliseconds = to_milliseconds_from_minutes(interval)
             max_duration = 200 * interval_milliseconds
 
-            print(f"start datetime: {self._format_timestamp(start_datetime)}")
-            print(f"start datetime: {self._format_timestamp(end_datetime)}")
+            print(f"start datetime: {format_timestamp(start_datetime)}")
+            print(f"start datetime: {format_timestamp(end_datetime)}")
 
             while start_datetime < end_datetime:
                 current_end_time = min(start_datetime + max_duration, end_datetime)
 
-                print(f"Fetching historical data from {self._format_timestamp(start_datetime)} to {self._format_timestamp(current_end_time)}")
+                print(f"Fetching historical data from {format_timestamp(start_datetime)} to {format_timestamp(current_end_time)}")
 
                 response = self.http_session.get_kline(
                     category="spot",
@@ -62,10 +73,3 @@ class MarketData:
             print(f"An error occurred while fetching historical data: {e}")
             return []
 
-    @staticmethod
-    def _to_milliseconds_from_minutes(minutes):
-        return int(minutes) * 60 * 1000
-
-    @staticmethod
-    def _format_timestamp(timestamp):
-        return datetime.datetime.fromtimestamp(timestamp / 1000).strftime('%Y-%m-%d %H:%M:%S')
