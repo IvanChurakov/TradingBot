@@ -17,4 +17,5 @@ class Settings:
         self.btc_per_trade = float(os.getenv("BTC_PER_TRADE", 0.0000314))
         self.buy_percentage = float(os.getenv("BUY_PERCENTAGE", 0.005))
         self.min_transaction_amount = float(os.getenv("MIN_TRANSACTION_AMOUNT", 5))
-        self.grid_historical_days = float(os.getenv("GRID_HISTORICAL_DAYS", 20))
+        self.grid_historical_days = float(os.getenv("GRID_HISTORICAL_DAYS", 61))
+        self.trading_interval = int(os.getenv("TRADING_INTERVAL", 6))

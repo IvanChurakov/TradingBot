@@ -1,6 +1,8 @@
 import json
+import time
 
 from bot.grid_strategy import GridStrategy
+from bot.trader import Trader
 from bot.trading_strategy import TradingStrategy
 from data.market_data import MarketData
 from configs.settings import Settings
@@ -20,13 +22,64 @@ class GridBot:
         )
 
         self.market_data = MarketData(self.http_session)
+        self.trader = Trader(self.http_session)
 
         self.grid_strategy = GridStrategy()
         self.trading_strategy = TradingStrategy()
 
     def run_real_time_bot(self):
         print("Starting Grid Bot...")
-        pass
+
+        grid_recalculation_interval_days = 1
+        recalculation_interval_ms = grid_recalculation_interval_days * 24 * 60 * 60 * 1000
+        next_grid_recalculation_time = int(time.time() * 1000)  # Поточний час у мс
+        # TODO: Retrieve positions
+
+        while True:
+            current_datetime_timestamp = int(time.time() * 1000)  # Отримуємо поточний час
+            close_price = self.market_data.get_current_price(self.settings.symbol)  # Отримуємо поточну ціну з біржі
+
+            if current_datetime_timestamp >= next_grid_recalculation_time:
+                self.refresh_data(current_datetime_timestamp)
+                next_grid_recalculation_time += recalculation_interval_ms
+
+            self.trading_strategy.balance = self.trader.get_balance("USDT")
+            self.update_positions()
+
+            decision = self.trading_strategy.process_price(close_price, timestamp=current_datetime_timestamp)
+            self.trader.place_order(self.settings.symbol, decision)
+
+            time.sleep(self.settings.trading_interval)
+
+    def refresh_data(self, current_datetime_timestamp):
+        print(f"Recalculating grid levels at {format_timestamp(current_datetime_timestamp)}...")
+
+        start_time_for_calculation = current_datetime_timestamp - (self.settings.grid_historical_days * 24 * 60 * 60 * 1000)
+        historical_prices = self.market_data.fetch_data_for_period(
+            self.settings.symbol, start_time_for_calculation, current_datetime_timestamp, "1"
+        )
+
+        if not historical_prices:
+            print(f"No sufficient data for recalculation at {format_timestamp(current_datetime_timestamp)}")
+        else:
+            self.trading_strategy.grid_levels = self.grid_strategy.calculate_grid_levels_with_percentile(
+                historical_prices, self.settings.grid_levels_count
+            )
+
+        print(f"Retrieving min order amount at {format_timestamp(current_datetime_timestamp)}...")
+        self.trading_strategy.min_order_amount = self.market_data.get_min_order_amt(self.settings.symbol)
+
+    def update_positions(self):
+        for position in self.trading_strategy.positions:
+            if not position["allowToSell"]:
+                order_link_id = position["orderLinkId"]
+                print(f"Checking order with orderLinkId: {order_link_id}...")
+
+                if self.trader.is_order_closed(order_link_id):
+                    print(f"Order with orderLinkId: {order_link_id} is closed. Allowing to sell.")
+                    position["allowToSell"] = True
+                else:
+                    print(f"Order with orderLinkId: {order_link_id} is still open.")
 
     def run_backtest(self, from_datetime, to_datetime, use_real_data=False):
         print("Starting Backtest...")
@@ -88,7 +141,7 @@ class GridBot:
                 next_grid_recalculation_time += recalculation_interval_ms
 
             # Обробляємо поточну ціну
-            self.trading_strategy.process_price(close_price, timestamp=timestamp)
+            decision = self.trading_strategy.process_price(close_price, timestamp=timestamp)
 
         # Підрахунок прибутку
         total_profit = sum(

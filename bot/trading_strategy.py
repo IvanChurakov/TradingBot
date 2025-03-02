@@ -1,3 +1,6 @@
+import secrets
+import string
+
 from configs.settings import Settings
 
 
@@ -35,26 +38,30 @@ class TradingStrategy:
 
         if lower_grid <= current_price < lower_buy_threshold and self.balance >= amount_to_spend:
             bought_amount = amount_to_spend / current_price  # Купівля активів на розраховану суму
+
+            order_link_id = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(8))
+
             self.positions.append({
                 "price": current_price,
                 "amount": bought_amount,
                 "timestamp": timestamp,
+                "orderLinkId": order_link_id,
+                "allowToSell": False
             })
             self.balance -= amount_to_spend  # Зменшуємо баланс на витрачену суму
 
-            self.trade_results.append({
-                "action": "BUY",
+            print(f"Buy @ {current_price:.7f}, Amount: {bought_amount:.6f}, Remaining Balance: {self.balance:.2f}")
+            return {
+                "action": "Buy",
                 "price": current_price,
                 "amount": bought_amount,
-                "timestamp": timestamp,
-            })
-            decisions.append(f"BUY {bought_amount:.6f} @ {current_price:.2f}")
-            print(f"BUY @ {current_price:.7f}, Amount: {bought_amount:.6f}, Remaining Balance: {self.balance:.2f}")
+                "orderLinkId": order_link_id
+            }
 
         # 2. Продаж: якщо ціна входить у верхню зону гріду
         if upper_grid >= current_price > upper_sell_threshold:
             # 2.1 Знаходимо перший прибутковий ордер
-            active_order = next((order for order in self.positions if current_price > order["price"]), None)
+            active_order = next((order for order in self.positions if current_price > order["price"] and order["allowToSell"]), None)
             if active_order is not None:
                 self.positions.remove(active_order)  # Видаляємо проданий ордер із позицій
                 profit = (current_price - active_order["price"]) * active_order["amount"]
@@ -63,16 +70,22 @@ class TradingStrategy:
                 self.balance += sale_amount  # Додаємо до балансу суму від продажу
 
                 self.trade_results.append({
-                    "action": "SELL",
+                    "action": "Sell",
                     "buy_price": active_order["price"],
                     "sell_price": current_price,
                     "amount": active_order["amount"],
                     "profit": profit,
                     "timestamp": timestamp,
                 })
-                decisions.append(f"SELL {active_order['amount']:.6f} @ {current_price:.2f}")
+
                 print(f"SELL @ {current_price:.7f}, Profit: {profit:.2f}, "
                       f"Sold Amount: {sale_amount:.2f}, Updated Balance: {self.balance:.2f}")
+
+                return {
+                    "action": "Sell",
+                    "price": current_price,
+                    "amount": active_order['amount'],
+                }
 
         return decisions
 

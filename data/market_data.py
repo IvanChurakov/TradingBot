@@ -1,9 +1,11 @@
+from configs.settings import Settings
 from utils.datetime_utils import to_milliseconds_from_minutes, format_timestamp
 
 
 class MarketData:
     def __init__(self, http_session):
         self.http_session = http_session
+        self.settings = Settings()
 
     def get_min_order_amt(self, symbol):
         response = self.http_session.get_instruments_info(category="spot", symbol=symbol)
@@ -25,7 +27,7 @@ class MarketData:
             print(f"Error fetching market price: {response['retMsg']}")
             return None
 
-    def fetch_data_for_period(self, symbol, start_datetime, end_datetime, interval="15"):
+    def fetch_data_for_period(self, symbol, start_datetime, end_datetime, interval="1"):
         try:
             historical_prices = []
             interval_milliseconds = to_milliseconds_from_minutes(interval)

@@ -11,4 +11,4 @@ http_session = HTTP(
     api_secret=settings.api_secret,
 )
 
-print(http_session.get_instruments_info(category="spot", symbol="BTCUSDT"))
+print(http_session.get_account_info())
