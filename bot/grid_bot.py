@@ -8,7 +8,7 @@ from configs.settings import Settings
 from pybit.unified_trading import HTTP
 from utils.datetime_utils import format_timestamp
 from utils.logging_utils import setup_logger
-
+from utils.telegram_utils import send_telegram_notification
 
 logger = setup_logger(log_dir="logs", days_to_keep=30)
 
@@ -63,6 +63,11 @@ class GridBot:
 
             except Exception as e:
                 logger.error(f"Error occurred in the bot loop: {e}", exc_info=True)
+
+                error_message = f"🚨 An error occurred in the bot loop: {e}"
+                send_telegram_notification(error_message)
+
+                break
 
     def refresh_data(self, current_datetime_timestamp):
         logger.info(f"Recalculating grid levels at {format_timestamp(current_datetime_timestamp)}...")

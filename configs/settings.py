@@ -14,6 +14,10 @@ class Settings:
         self.aws_access_key = os.getenv("AWS_ACCESS_KEY")
         self.aws_secret_key = os.getenv("AWS_SECRET_KEY")
 
+        # Telegram Credentials
+        self.telegram_bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
+        self.telegram_chat_id = os.getenv("TELEGRAM_CHAT_ID")
+
         # General Bot Settings
         self.symbol = os.getenv("SYMBOL", "BTCUSDT")
         self.grid_levels_count = int(os.getenv("GRID_LEVELS_COUNT", 20))
