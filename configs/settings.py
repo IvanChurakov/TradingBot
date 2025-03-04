@@ -5,9 +5,14 @@ load_dotenv()
 
 class Settings:
     def __init__(self):
-        # API Keys
+        # Bybit API Keys
         self.api_key = os.getenv("API_KEY")
         self.api_secret = os.getenv("API_SECRET")
+
+        # AWS Credentials
+        self.aws_region = os.getenv("AWS_REGION")
+        self.aws_access_key = os.getenv("AWS_ACCESS_KEY")
+        self.aws_secret_key = os.getenv("AWS_SECRET_KEY")
 
         # General Bot Settings
         self.symbol = os.getenv("SYMBOL", "BTCUSDT")
