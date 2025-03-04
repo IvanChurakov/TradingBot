@@ -1,78 +1,98 @@
-from unicodedata import category
+from utils.logging_utils import setup_logger
+
+
+logger = setup_logger(log_dir="logs", days_to_keep=30)
 
 
 class Trader:
     def __init__(self, http_session):
         self.http_session = http_session
 
-    def get_balance(self, coin=None, account_type="SPOT"):
-        print("Fetching balance information...")
-
-        response = self.http_session.get_wallet_balance(category="spot")
+    def get_balance(self, coin=None, account_type="UNIFIED"):
+        logger.info(f"Fetching balance information for accountType={account_type}, coin={coin}.")
+        try:
+            response = self.http_session.get_wallet_balance(accountType=account_type, coin=coin)
+        except Exception as e:
+            logger.error(f"Error during balance fetching: {e}", exc_info=True)
+            return None
 
         if response.get("retCode") == 0:
-            balance_list = response["result"].get("list", [])
-            if not balance_list:
-                print("No balance data available.")
+            balance_data = response["result"].get("list", [])
+            if not balance_data:
+                logger.warning("No balance data available from API response.")
                 return None
 
-            account_data = next((item for item in balance_list if item.get("accountType") == account_type), None)
-            if not account_data:
-                print(f"No account found with type {account_type}.")
-                return None
+            for account in balance_data:
+                if account.get("accountType") == account_type:
+                    coins = account.get("coin", [])
 
-            coins = account_data.get("coin", [])
+                    if coin:
+                        for item in coins:
+                            if item["coin"] == coin:
+                                wallet_balance = float(item.get("walletBalance", 0))
+                                logger.info(f"Found wallet balance for {coin}: {wallet_balance}")
+                                return wallet_balance
+                        logger.info(f"Coin {coin} not found in accountType={account_type}. Returning 0.0 balance.")
+                        return 0.0
 
-            if coin:
-                for item in coins:
-                    if item["coin"] == coin:
-                        return float(item.get("free", 0))  # Повертаємо лише кількість доступних монет
-                return 0.0  # Якщо монета не знайдена, повертаємо 0
+                    available_balances = {
+                        item["coin"]: float(item.get("walletBalance", 0))
+                        for item in coins if float(item.get("walletBalance", 0)) > 0
+                    }
+                    logger.info(f"Available balances for accountType={account_type}: {available_balances}")
+                    return available_balances
 
-            # Якщо параметр coin не передано, формуємо список доступних монет
-            available_balances = {item["coin"]: float(item.get("free", 0)) for item in coins}
-            return available_balances
+            logger.warning(f"No account found with type {account_type} in API response.")
+            return None
         else:
-            print(f"Error fetching balance: {response['retMsg']}")
+            logger.error(f"Error fetching balance: {response.get('retMsg')}")
             return None
 
     def is_order_closed(self, order_link_id):
-        print(f"Checking if order with orderLinkId: {order_link_id} is closed...")
+        logger.info(f"Checking if order with orderLinkId: {order_link_id} is closed...")
 
-        # Викликаємо API для отримання відкритих ордерів
-        response = self.http_session.get_open_orders(
-            category="spot",
-            orderLinkId=order_link_id
-        )
+        try:
+            response = self.http_session.get_open_orders(
+                category="spot",
+                orderLinkId=order_link_id
+            )
+        except Exception as e:
+            logger.error(f"Error during order status check: {e}", exc_info=True)
+            return None
 
         if response.get("retCode") == 0:
             open_orders = response["result"].get("list", [])
             if not open_orders:
-                print("No open orders found.")
+                logger.info(f"No open orders found for orderLinkId: {order_link_id}. Order is closed.")
                 return True
             else:
+                logger.info(f"Order with orderLinkId: {order_link_id} is still open.")
                 return False
         else:
-            print(f"Error fetching open orders: {response['retMsg']}")
+            logger.error(f"Error fetching open orders: {response['retMsg']}")
             return None
 
     def place_order(self, symbol, decision):
-        print(f"Placing {decision["action"]} order for {symbol} with orderLinkId {decision["orderLinkId"]}...")
+        logger.info(f"Placing {decision['action']} order for {symbol} with orderLinkId {decision['orderLinkId']}...")
 
-        response = self.http_session.place_order(
-            category="spot",
-            symbol=symbol,
-            side=decision["action"],
-            orderType="Limit",
-            qty=decision["amount"],
-            price=decision["price"],
-            timeInForce="GTC",
-            orderLinkId=decision["orderLinkId"],
-        )
+        try:
+            response = self.http_session.place_order(
+                category="spot",
+                symbol=symbol,
+                side=decision["action"],
+                orderType="Limit",
+                qty=decision["amount"],
+                price=decision["price"],
+                timeInForce="GTC",
+                orderLinkId=decision["orderLinkId"],
+            )
+        except Exception as e:
+            logger.error(f"Error during order placement: {e}", exc_info=True)
+            return None
 
         if response.get("retCode") == 0:
-            print(f"Order placed successfully: {response['result']}")
+            logger.info(f"Order placed successfully: {response['result']}")
             return response["result"]
         else:
-            print(f"Error placing order: {response['retMsg']}")
+            logger.error(f"Error placing order: {response['retMsg']}")
             return None

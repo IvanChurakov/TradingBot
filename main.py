@@ -1,11 +1,16 @@
-from datetime import datetime
 from bot.grid_bot import GridBot
+from utils.logging_utils import setup_logger
 
 
 if __name__ == "__main__":
-    grid_bot = GridBot()
+    logger = setup_logger(log_dir="logs", days_to_keep=30)
 
-    from_date = datetime(2023, 1, 1, 0, 0, 0)
-    to_date = datetime(2024, 12, 31, 23, 59, 59)
+    logger.info("Starting the bot...")
 
-    grid_bot.run_backtest(from_date, to_date, use_real_data=True)
+    try:
+        grid_bot = GridBot()
+        grid_bot.run_real_time_bot()
+    except Exception as e:
+        logger.error(f"An error occurred during bot operation: {e}", exc_info=True)
+    finally:
+        logger.info("Bot has stopped.")

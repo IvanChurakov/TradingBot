@@ -1,56 +1,51 @@
+from bot.state_manager import StateManager
 import secrets
 import string
-
 from configs.settings import Settings
+from utils.logging_utils import setup_logger
 
+
+logger = setup_logger(log_dir="logs", days_to_keep=30)
 
 class TradingStrategy:
     def __init__(self):
         self.settings = Settings()
         self.grid_levels = {"levels": [], "min": None, "max": None}
-        self.min_order_amount=0
-        self.balance = 200  # Повний баланс для торгівлі
-        self.positions = []  # Список активних покупок
-        self.trade_results = []  # Історія виконаних угод (купівля/продаж)
+        self.min_order_amount = 0
+        self.balance = 200
+        self.trade_results = []
+
+        self.state_manager = StateManager()
+        logger.info("TradingStrategy initialized.")
 
     def process_price(self, current_price, timestamp):
         decisions = []
 
-        # Якщо поточна ціна поза діапазоном — нічого не робимо
         if current_price < min(self.grid_levels["levels"]) or current_price > max(self.grid_levels["levels"]):
+            logger.info(f"Current price {current_price:.7f} is out of grid range. No action taken.")
             return decisions
 
-        # Визначаємо поточний рівень гріду
         lower_grid = max((level for level in self.grid_levels["levels"] if level <= current_price), default=None)
         upper_grid = min((level for level in self.grid_levels["levels"] if level >= current_price), default=None)
 
         grid_distance = upper_grid - lower_grid
-        lower_buy_threshold = lower_grid + grid_distance * 0.49  # 49% до середини
-        upper_sell_threshold = upper_grid - grid_distance * 0.49  # 49% догори
+        lower_buy_threshold = lower_grid + grid_distance * 0.49
+        upper_sell_threshold = upper_grid - grid_distance * 0.49
 
-        # 1. Купівля: якщо ціна входить у нижню зону гріду
-        # Розрахунок суми для покупки як % від поточного балансу
         buy_percentage = self.settings.buy_percentage
-
-        # Розрахунок суми для покупки: або buy_percentage від балансу, або мінімальна сума
         calculated_amount_to_spend = self.balance * buy_percentage
         amount_to_spend = max(calculated_amount_to_spend, self.min_order_amount)
 
         if lower_grid <= current_price < lower_buy_threshold and self.balance >= amount_to_spend:
-            bought_amount = amount_to_spend / current_price  # Купівля активів на розраховану суму
+            bought_amount = amount_to_spend / current_price
 
             order_link_id = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(8))
 
-            self.positions.append({
-                "price": current_price,
-                "amount": bought_amount,
-                "timestamp": timestamp,
-                "orderLinkId": order_link_id,
-                "allowToSell": False
-            })
-            self.balance -= amount_to_spend  # Зменшуємо баланс на витрачену суму
+            self.state_manager.add_order(order_link_id, bought_amount, current_price)
+            self.balance -= amount_to_spend
 
-            print(f"Buy @ {current_price:.7f}, Amount: {bought_amount:.6f}, Remaining Balance: {self.balance:.2f}")
+            logger.info(f"Buy executed @ {current_price:.7f}, Amount: {bought_amount:.6f}, "
+                        f"Remaining Balance: {self.balance:.2f}")
             return {
                 "action": "Buy",
                 "price": current_price,
@@ -58,16 +53,16 @@ class TradingStrategy:
                 "orderLinkId": order_link_id
             }
 
-        # 2. Продаж: якщо ціна входить у верхню зону гріду
         if upper_grid >= current_price > upper_sell_threshold:
-            # 2.1 Знаходимо перший прибутковий ордер
-            active_order = next((order for order in self.positions if current_price > order["price"] and order["allowToSell"]), None)
+            active_orders = self.state_manager.get_orders()
+
+            active_order = next((order for order in active_orders if current_price > order["price"] and order["allowToSell"]), None)
             if active_order is not None:
-                self.positions.remove(active_order)  # Видаляємо проданий ордер із позицій
+                self.state_manager.remove_order(active_order["orderLinkId"])
                 profit = (current_price - active_order["price"]) * active_order["amount"]
                 sale_amount = active_order["amount"] * current_price
 
-                self.balance += sale_amount  # Додаємо до балансу суму від продажу
+                self.balance += sale_amount
 
                 self.trade_results.append({
                     "action": "Sell",
@@ -78,8 +73,8 @@ class TradingStrategy:
                     "timestamp": timestamp,
                 })
 
-                print(f"SELL @ {current_price:.7f}, Profit: {profit:.2f}, "
-                      f"Sold Amount: {sale_amount:.2f}, Updated Balance: {self.balance:.2f}")
+                logger.info(f"SELL executed @ {current_price:.7f}, Profit: {profit:.2f}, "
+                            f"Sold Amount: {sale_amount:.2f}, Updated Balance: {self.balance:.2f}")
 
                 return {
                     "action": "Sell",
@@ -90,27 +85,15 @@ class TradingStrategy:
         return decisions
 
     def get_portfolio_balance(self, current_price):
-        """
-        Повертає повну інформацію про баланс портфеля.
-        :param current_price: Поточна ціна активу.
-        :return: Словник з деталями балансу.
-        """
-        # Баланс у USDT
+        active_orders = self.state_manager.get_orders()
+
         usdt_balance = self.balance
+        positions_usdt_value = sum(order["amount"] * current_price for order in active_orders)
 
-        # Вартість активу, який є у портфелі, за поточною ціною
-        positions_usdt_value = sum(position["amount"] * current_price for position in self.positions)
-
-        # Сумарний баланс
         total_balance = usdt_balance + positions_usdt_value
+        total_btc = sum(order["amount"] for order in active_orders)
+        btc_bought_value = sum(order["amount"] * order["price"] for order in active_orders)
 
-        # Кількість BTC у портфелі
-        total_btc = sum(position["amount"] for position in self.positions)
-
-        # Вартість купленого активу за початковою ціною покупки
-        btc_bought_value = sum(position["amount"] * position["price"] for position in self.positions)
-
-        # Формуємо результат
         result = {
             "usdt_balance": usdt_balance,
             "positions_usdt_value": positions_usdt_value,
@@ -119,11 +102,10 @@ class TradingStrategy:
             "total_balance": total_balance
         }
 
-        # Виводимо портфель для зручності
-        print(f"Portfolio Balance: "
-              f"USDT Balance = {usdt_balance:.2f}, "
-              f"BTC Value (current price) = {positions_usdt_value:.2f}, "
-              f"BTC Bought Value = {btc_bought_value:.2f}, "
-              f"Total BTC = {total_btc:.6f}, "
-              f"Total = {total_balance:.2f}")
+        logger.info(f"Portfolio Balance: "
+                    f"USDT Balance = {usdt_balance:.2f}, "
+                    f"BTC Value (current price) = {positions_usdt_value:.2f}, "
+                    f"BTC Bought Value = {btc_bought_value:.2f}, "
+                    f"Total BTC = {total_btc:.6f}, "
+                    f"Total = {total_balance:.2f}")
         return result

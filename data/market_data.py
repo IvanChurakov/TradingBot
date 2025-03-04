@@ -1,45 +1,63 @@
 from configs.settings import Settings
 from utils.datetime_utils import to_milliseconds_from_minutes, format_timestamp
+from utils.logging_utils import setup_logger
+
+
+logger = setup_logger(log_dir="logs", days_to_keep=30)
 
 
 class MarketData:
     def __init__(self, http_session):
         self.http_session = http_session
         self.settings = Settings()
+        logger.info("MarketData initialized successfully.")
 
     def get_min_order_amt(self, symbol):
-        response = self.http_session.get_instruments_info(category="spot", symbol=symbol)
+        logger.info(f"Fetching min order amount for symbol: {symbol}...")
+        try:
+            response = self.http_session.get_instruments_info(category="spot", symbol=symbol)
 
-        if response.get("retCode") == 0:
-            instruments = response.get("result", {}).get("list", [])
-            if instruments:
-                return float(instruments[0]["lotSizeFilter"]["minOrderAmt"])
+            if response.get("retCode") == 0:
+                instruments = response.get("result", {}).get("list", [])
+                if instruments:
+                    min_order_amt = float(instruments[0]["lotSizeFilter"]["minOrderAmt"])
+                    logger.info(f"Min order amount for {symbol}: {min_order_amt}")
+                    return min_order_amt
+            logger.error(f"Error fetching min order amount: {response.get('retMsg')}")
+            return 5
 
-        print(f"Error fetching min order amount: {response.get('retMsg')}")
-        return 5
+        except Exception as e:
+            logger.error(f"An error occurred while fetching min order amount for {symbol}: {e}", exc_info=True)
+            return 5
 
     def get_current_price(self, symbol):
-        response = self.http_session.get_ticker(category="spot", symbol=symbol)
+        logger.info(f"Fetching current price for symbol: {symbol}...")
+        try:
+            response = self.http_session.get_tickers(category="spot", symbol=symbol)
 
-        if response.get("retCode") == 0:
-            return float(response["result"]["lastPrice"])
-        else:
-            print(f"Error fetching market price: {response['retMsg']}")
+            if response.get("retCode") == 0:
+                current_price = float(response["result"]["list"][0]["lastPrice"])
+                logger.info(f"Current price for {symbol}: {current_price}")
+                return current_price
+            else:
+                logger.error(f"Error fetching market price for {symbol}: {response['retMsg']}")
+                return None
+        except Exception as e:
+            logger.error(f"An error occurred while fetching market price for {symbol}: {e}", exc_info=True)
             return None
 
     def fetch_data_for_period(self, symbol, start_datetime, end_datetime, interval="1"):
+        logger.info(f"Fetching historical data for symbol: {symbol} "
+                    f"from {format_timestamp(start_datetime)} to {format_timestamp(end_datetime)} with interval {interval}...")
         try:
             historical_prices = []
             interval_milliseconds = to_milliseconds_from_minutes(interval)
             max_duration = 200 * interval_milliseconds
 
-            print(f"start datetime: {format_timestamp(start_datetime)}")
-            print(f"start datetime: {format_timestamp(end_datetime)}")
-
             while start_datetime < end_datetime:
                 current_end_time = min(start_datetime + max_duration, end_datetime)
 
-                print(f"Fetching historical data from {format_timestamp(start_datetime)} to {format_timestamp(current_end_time)}")
+                logger.info(f"Fetching data from {format_timestamp(start_datetime)} to {format_timestamp(current_end_time)}...")
 
                 response = self.http_session.get_kline(
                     category="spot",
@@ -52,6 +70,7 @@ class MarketData:
                 if response.get("retCode") == 0:
                     kline_data = response.get("result", {}).get("list", [])
                     if not kline_data:
+                        logger.warning(f"No kline data for the time period: {format_timestamp(start_datetime)} to {format_timestamp(current_end_time)}.")
                         start_datetime = current_end_time + 1
                         continue
 
@@ -62,16 +81,16 @@ class MarketData:
                         if not historical_prices or historical_prices[-1]["timestamp"] != timestamp:
                             historical_prices.append({"timestamp": timestamp, "close_price": close_price})
 
+                    logger.info(f"Fetched {len(kline_data)} entries for {symbol} from {format_timestamp(start_datetime)} to {format_timestamp(current_end_time)}.")
                     start_datetime = current_end_time + 1
                 else:
-                    print(f"Error fetching historical data: {response.get('retMsg')}")
+                    logger.error(f"Error fetching historical data: {response.get('retMsg')}")
                     break
 
             historical_prices = sorted(historical_prices, key=lambda x: x["timestamp"])
-
+            logger.info(f"Fetched total {len(historical_prices)} historical entries for {symbol}.")
             return historical_prices
 
         except Exception as e:
-            print(f"An error occurred while fetching historical data: {e}")
+            logger.error(f"An error occurred while fetching historical data for {symbol}: {e}", exc_info=True)
             return []
-
