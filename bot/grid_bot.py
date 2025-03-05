@@ -59,7 +59,7 @@ class GridBot:
                     logger.info(f"Decision made: {decision}")
                     self.trader.place_order(self.settings.symbol, decision)
 
-                    action = decision['action']  # 'Buy' або 'Sell'
+                    action = decision['action']
                     message = (
                         f"📈 **Grid Bot {action} Alert**\n\n"
                         f"🔹 **Symbol**: {self.settings.symbol}\n"
