@@ -59,6 +59,16 @@ class GridBot:
                     logger.info(f"Decision made: {decision}")
                     self.trader.place_order(self.settings.symbol, decision)
 
+                    action = decision['action']  # 'Buy' або 'Sell'
+                    message = (
+                        f"📈 **Grid Bot {action} Alert**\n\n"
+                        f"🔹 **Symbol**: {self.settings.symbol}\n"
+                        f"💵 **Price**: {decision['price']:.2f}\n"
+                        f"💰 **Amount**: {decision['amount']:.6f}\n"
+                        f"🔗 **orderLinkID**: {decision['orderLinkId']}\n"
+                    )
+                    send_telegram_notification(message)
+
                 time.sleep(self.settings.trading_interval)
 
             except Exception as e:

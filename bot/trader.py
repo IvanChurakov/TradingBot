@@ -88,11 +88,12 @@ class Trader:
             )
         except Exception as e:
             logger.error(f"Error during order placement: {e}", exc_info=True)
-            return None
+            raise Exception(f"Error during order placement: {e}")
 
         if response.get("retCode") == 0:
             logger.info(f"Order placed successfully: {response['result']}")
             return response["result"]
         else:
-            logger.error(f"Error placing order: {response['retMsg']}")
-            return None
+            error_message = response.get("retMsg", "Unknown error")
+            logger.error(f"Error placing order: {error_message}")
+            raise Exception(f"Error placing order: {error_message}")
