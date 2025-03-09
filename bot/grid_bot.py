@@ -10,6 +10,7 @@ from utils.datetime_utils import format_timestamp
 from utils.logging_utils import setup_logger
 from utils.telegram_utils import send_telegram_notification
 
+
 logger = setup_logger(log_dir="logs", days_to_keep=30)
 
 
@@ -45,14 +46,13 @@ class GridBot:
                     self.refresh_data(current_datetime_timestamp)
                     next_grid_recalculation_time += recalculation_interval_ms
 
-                close_price = self.market_data.get_current_price(self.settings.symbol)
-
-                logger.info(f"Current Price: {close_price:.2f}")
-
                 self.update_positions()
 
                 self.trading_strategy.balance = self.trader.get_balance("USDT")
                 logger.info(f"Balance updated: {self.trading_strategy.balance:.2f} USDT")
+
+                close_price = self.market_data.get_current_price(self.settings.symbol)
+                logger.info(f"Current Price: {close_price:.2f}")
 
                 decision = self.trading_strategy.process_price(close_price, timestamp=current_datetime_timestamp)
                 if decision:
@@ -60,14 +60,43 @@ class GridBot:
                     self.trader.place_order(self.settings.symbol, decision)
 
                     action = decision['action']
-                    message = (
-                        f"📈 **Grid Bot {action} Alert**\n\n"
-                        f"🔹 **Symbol**: {self.settings.symbol}\n"
-                        f"💵 **Price**: {decision['price']:.2f}\n"
-                        f"💰 **Amount**: {decision['amount']:.6f}\n"
-                        f"🔗 **orderLinkID**: {decision['orderLinkId']}\n"
+                    balance_info = self.trading_strategy.get_portfolio_balance(close_price)
+
+                    balance_details = (
+                        f"💹 **Portfolio Balance**:\n"
+                        f"🔸 **USDT Balance**: {balance_info['usdt_balance']:.2f} USDT\n"
+                        f"🔹 **BTC Value (at current price)**: {balance_info['positions_usdt_value']:.2f} USDT\n"
+                        f"🔸 **BTC Bought Value**: {balance_info['btc_bought_value']:.2f} USDT\n"
+                        f"🔹 **Total BTC**: {balance_info['total_btc']:.6f} BTC\n"
+                        f"💼 **Total Portfolio Value**: {balance_info['total_balance']:.2f} USDT\n"
                     )
-                    send_telegram_notification(message)
+
+                    message = None
+
+                    if action == "Buy":
+                        message = (
+                            f"📈 **Grid Bot {action} Alert**\n\n"
+                            f"🔹 **Symbol**: {self.settings.symbol}\n"
+                            f"💵 **Buy Price**: {decision['price']:.2f}\n"
+                            f"💰 **Bought Amount**: {decision['amount']:.6f}\n"
+                            f"🔗 **Order Link ID**: {decision['orderLinkId']}\n\n"
+                            f"{balance_details}"
+                        )
+                    elif action == "Sell":
+                        last_trade = self.trading_strategy.trade_results[-1]
+                        profit = last_trade['profit']
+
+                        message = (
+                            f"📉 **Grid Bot {action} Alert**\n\n"
+                            f"🔹 **Symbol**: {self.settings.symbol}\n"
+                            f"💵 **Sell Price**: {decision['price']:.2f}\n"
+                            f"💰 **Sold Amount**: {decision['amount']:.6f}\n"
+                            f"💸 **Profit**: {profit:.2f} USDT\n\n"
+                            f"{balance_details}"
+                        )
+
+                    if message:
+                        send_telegram_notification(message)
 
                 time.sleep(self.settings.trading_interval)
 

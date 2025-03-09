@@ -1,3 +1,4 @@
+from decimal import Decimal
 import boto3
 from botocore.exceptions import ClientError
 from configs.settings import Settings

@@ -25,6 +25,7 @@ class Settings:
         self.profit_target = float(os.getenv("PROFIT_TARGET", 0.02))
         self.btc_per_trade = float(os.getenv("BTC_PER_TRADE", 0.0000314))
         self.buy_percentage = float(os.getenv("BUY_PERCENTAGE", 0.005))
-        self.min_transaction_amount = float(os.getenv("MIN_TRANSACTION_AMOUNT", 5))
+        self.min_transaction_amount = float(os.getenv("MIN_TRANSACTION_AMOUNT", 6))
         self.grid_historical_days = float(os.getenv("GRID_HISTORICAL_DAYS", 61))
         self.trading_interval = int(os.getenv("TRADING_INTERVAL", 60))
+        self.qty_precision = float(os.getenv("QTY_PRECISION", 6))
