@@ -39,6 +39,11 @@ class TradingStrategy:
 
             rounded_bought_amount = self.round_to_precision(bought_amount)
 
+            if rounded_bought_amount == 0:
+                logger.info(f"Buy skipped. Rounded bought amount is 0. Current price: {current_price:.2f}, "
+                            f"Amount to spend: {amount_to_spend:.2f}, Rounded Amount: {rounded_bought_amount:.6f}")
+                return None
+
             order_link_id = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(16))
 
             self.state_manager.add_order(order_link_id, rounded_bought_amount, current_price)
