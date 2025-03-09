@@ -126,7 +126,7 @@ class GridBot:
             self.trading_strategy.grid_levels = self.grid_strategy.calculate_grid_levels_with_percentile(
                 historical_prices, self.settings.grid_levels_count
             )
-            logger.info(f"Grid recalculated successfully with {len(self.trading_strategy.grid_levels["levels"])} levels.")
+            logger.info(f"Grid recalculated successfully with {len(self.trading_strategy.grid_levels['levels'])} levels.")
 
         logger.info(f"Retrieving min order amount at {format_timestamp(current_datetime_timestamp)}...")
         self.trading_strategy.min_order_amount = self.market_data.get_min_order_amt(self.settings.symbol)
