@@ -33,6 +33,7 @@ class GridBot:
 
     def run_real_time_bot(self):
         logger.info("Starting Grid Bot...")
+        send_telegram_notification("Starting Grid Bot...")
 
         grid_recalculation_interval_days = 1
         recalculation_interval_ms = grid_recalculation_interval_days * 24 * 60 * 60 * 1000
