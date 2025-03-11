@@ -44,6 +44,13 @@ class GridBot:
                 current_datetime_timestamp = int(time.time() * 1000)
 
                 if current_datetime_timestamp >= next_grid_recalculation_time:
+                    self.http_session = HTTP(
+                        testnet=False,
+                        api_key=self.settings.api_key,
+                        api_secret=self.settings.api_secret,
+                    )
+                    logger.info("HTTP session recreated for stability.")
+
                     self.refresh_data(current_datetime_timestamp)
                     next_grid_recalculation_time += recalculation_interval_ms
 
