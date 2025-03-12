@@ -18,11 +18,7 @@ class GridBot:
     def __init__(self):
         self.settings = Settings()
 
-        self.http_session = HTTP(
-            testnet=False,
-            api_key=self.settings.api_key,
-            api_secret=self.settings.api_secret,
-        )
+        self.http_session = self.create_http_session()
         logger.info("HTTP session initialized with API keys.")
 
         self.market_data = MarketData(self.http_session)
@@ -30,6 +26,22 @@ class GridBot:
         self.grid_strategy = GridStrategy()
         self.trading_strategy = TradingStrategy()
         logger.info("GridBot modules initialized successfully.")
+
+    def create_http_session(self):
+        return HTTP(
+            testnet=False,
+            api_key=self.settings.api_key,
+            api_secret=self.settings.api_secret,
+        )
+
+    def safe_api_call(self, api_func, *args, **kwargs):
+        try:
+            return api_func(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"HTTP session error: {e}. Recreating session...")
+            send_telegram_notification(f"⚠ API error: {e}. Recreating session...")
+            self.http_session = self.create_http_session()
+            return api_func(*args, **kwargs)
 
     def run_real_time_bot(self):
         logger.info("Starting Grid Bot...")
@@ -44,28 +56,21 @@ class GridBot:
                 current_datetime_timestamp = int(time.time() * 1000)
 
                 if current_datetime_timestamp >= next_grid_recalculation_time:
-                    self.http_session = HTTP(
-                        testnet=False,
-                        api_key=self.settings.api_key,
-                        api_secret=self.settings.api_secret,
-                    )
-                    logger.info("HTTP session recreated for stability.")
-
                     self.refresh_data(current_datetime_timestamp)
                     next_grid_recalculation_time += recalculation_interval_ms
 
                 self.update_positions()
 
-                self.trading_strategy.balance = self.trader.get_balance("USDT")
+                self.trading_strategy.balance = self.safe_api_call(self.trader.get_balance, "USDT")
                 logger.info(f"Balance updated: {self.trading_strategy.balance:.2f} USDT")
 
-                close_price = self.market_data.get_current_price(self.settings.symbol)
+                close_price = self.safe_api_call(self.market_data.get_current_price, self.settings.symbol)
                 logger.info(f"Current Price: {close_price:.2f}")
 
                 decision = self.trading_strategy.process_price(close_price, timestamp=current_datetime_timestamp)
                 if decision:
                     logger.info(f"Decision made: {decision}")
-                    self.trader.place_order(self.settings.symbol, decision)
+                    self.safe_api_call(self.trader.place_order, self.settings.symbol, decision)
 
                     action = decision['action']
                     balance_info = self.trading_strategy.get_portfolio_balance(close_price)
@@ -122,7 +127,9 @@ class GridBot:
         start_time_for_calculation = current_datetime_timestamp - (
             self.settings.grid_historical_days * 24 * 60 * 60 * 1000
         )
-        historical_price_data = self.market_data.fetch_data_for_period(
+
+        historical_price_data = self.safe_api_call(
+            self.market_data.fetch_data_for_period,
             self.settings.symbol, start_time_for_calculation, current_datetime_timestamp, "1"
         )
 
@@ -137,7 +144,7 @@ class GridBot:
             logger.info(f"Grid recalculated successfully with {len(self.trading_strategy.grid_levels['levels'])} levels.")
 
         logger.info(f"Retrieving min order amount at {format_timestamp(current_datetime_timestamp)}...")
-        self.trading_strategy.min_order_amount = self.market_data.get_min_order_amt(self.settings.symbol)
+        self.trading_strategy.min_order_amount = self.safe_api_call(self.market_data.get_min_order_amt, self.settings.symbol)
 
     def update_positions(self):
         active_orders = self.trading_strategy.state_manager.get_orders()
