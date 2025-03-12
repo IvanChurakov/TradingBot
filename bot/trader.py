@@ -61,15 +61,22 @@ class Trader:
             return None
 
         if response.get("retCode") == 0:
-            open_orders = response["result"].get("list", [])
-            if not open_orders:
-                logger.info(f"No open orders found for orderLinkId: {order_link_id}. Order is closed.")
-                return True
-            else:
-                logger.info(f"Order with orderLinkId: {order_link_id} is still open.")
-                return False
+            orders = response.get("result", {}).get("list", [])
+
+            for order in orders:
+                if order.get("orderLinkId") == order_link_id:
+                    order_status = order.get("orderStatus")
+                    if order_status == "Filled":
+                        logger.info(f"Order {order_link_id} is closed (status: Filled).")
+                        return True
+                    else:
+                        logger.info(f"Order {order_link_id} is still open (status: {order_status}).")
+                        return False
+
+            logger.info(f"Order {order_link_id} not found in the response. Assuming it is closed.")
+            return True  # Якщо немає в списку, вважаємо закритим
         else:
-            logger.error(f"Error fetching open orders: {response['retMsg']}")
+            logger.error(f"Error fetching open orders: {response.get('retMsg')}")
             return None
 
     def place_order(self, symbol, decision):
