@@ -44,6 +44,10 @@ class TradingStrategy:
                             f"Amount to spend: {amount_to_spend:.2f}, Rounded Amount: {rounded_bought_amount:.6f}")
                 return None
 
+            if rounded_bought_amount * current_price > self.balance:
+                logger.info(f"Buy skipped. Not enough money")
+                return None
+
             order_link_id = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(16))
 
             self.state_manager.add_order(order_link_id, rounded_bought_amount, current_price)
