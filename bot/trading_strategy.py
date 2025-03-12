@@ -21,7 +21,7 @@ class TradingStrategy:
 
     def process_price(self, current_price, timestamp):
         if current_price < min(self.grid_levels["levels"]) or current_price > max(self.grid_levels["levels"]):
-            logger.info(f"Current price {current_price:.7f} is out of grid range. No action taken.")
+            logger.info(f"Current price {current_price:.2f} is out of grid range. No action taken.")
             return None
 
         lower_grid = max((level for level in self.grid_levels["levels"] if level <= current_price), default=None)
