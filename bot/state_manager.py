@@ -4,7 +4,6 @@ from botocore.exceptions import ClientError
 from configs.settings import Settings
 from utils.logging_utils import setup_logger
 
-
 logger = setup_logger(log_dir="logs", days_to_keep=30)
 
 
@@ -30,8 +29,8 @@ class StateManager:
         try:
             item = {
                 "orderLinkId": order_link_id,
-                "amount": amount,
-                "price": price,
+                "amount": Decimal(str(amount)),
+                "price": Decimal(str(price)),
                 "allowToSell": False
             }
             self.table.put_item(Item=item)
@@ -48,11 +47,15 @@ class StateManager:
 
     def update_order(self, order_link_id, **fields):
         try:
+            for key, value in fields.items():
+                if isinstance(value, float):
+                    fields[key] = Decimal(str(value))
+
             update_expression = "SET " + ", ".join(f"{key} = :{key}" for key in fields.keys())
             expression_values = {f":{key}": value for key, value in fields.items()}
 
             self.table.update_item(
-                Key={"orderLinkId": order_link_id},  # Ідентифікатор
+                Key={"orderLinkId": order_link_id},
                 UpdateExpression=update_expression,
                 ExpressionAttributeValues=expression_values
             )
@@ -64,6 +67,13 @@ class StateManager:
         try:
             response = self.table.scan()
             orders = response.get("Items", [])
+
+            for order in orders:
+                if "amount" in order:
+                    order["amount"] = float(order["amount"])
+                if "price" in order:
+                    order["price"] = float(order["price"])
+
             logger.info(f"Fetched {len(orders)} orders from DynamoDB.")
             return orders
         except ClientError as e:
@@ -74,7 +84,13 @@ class StateManager:
         try:
             response = self.table.get_item(Key={"orderLinkId": order_link_id})
             order = response.get("Item")
+
             if order:
+                if "amount" in order:
+                    order["amount"] = float(order["amount"])
+                if "price" in order:
+                    order["price"] = float(order["price"])
+
                 logger.info(f"Order {order_link_id} fetched successfully from DynamoDB.")
                 return order
             else:
