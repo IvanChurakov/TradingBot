@@ -1,5 +1,10 @@
 import json
 import time
+
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
 from bot.grid_strategy import GridStrategy
 from bot.trader import Trader
 from bot.trading_strategy import TradingStrategy
@@ -32,16 +37,50 @@ class GridBot:
             testnet=False,
             api_key=self.settings.api_key,
             api_secret=self.settings.api_secret,
+            timeout=30
         )
 
     def safe_api_call(self, api_func, *args, **kwargs):
-        try:
-            return api_func(*args, **kwargs)
-        except Exception as e:
-            logger.error(f"HTTP session error: {e}. Recreating session...")
-            send_telegram_notification(f"⚠ API error: {e}. Recreating session...")
-            self.http_session = self.create_http_session()
-            return api_func(*args, **kwargs)
+        max_retries = 3
+        retry_interval = 5
+
+        for attempt in range(max_retries):
+            try:
+                return api_func(*args, **kwargs)
+
+            except requests.exceptions.ReadTimeout as e:
+                logger.warning(f"Read timeout occurred: {e}. Attempt {attempt + 1}/{max_retries}")
+
+                if attempt < max_retries - 1:
+                    time.sleep(retry_interval)
+                    self.http_session = self.create_http_session()
+                else:
+                    logger.error(f"Read timeout after {max_retries} retries. Giving up...")
+                    send_telegram_notification(f"⚠ API call failed due to timeout after {max_retries} retries.")
+                    raise e
+
+            except requests.exceptions.ConnectionError as e:
+                logger.warning(f"Connection reset by peer: {e}. Attempt {attempt + 1}/{max_retries}")
+
+                if attempt < max_retries - 1:
+                    time.sleep(retry_interval)
+                    self.http_session = self.create_http_session()
+                else:
+                    logger.error(f"Connection reset by peer after {max_retries} retries. Giving up...")
+                    send_telegram_notification(
+                        f"⚠ API call failed due to connection issues after {max_retries} retries.")
+                    raise e
+
+            except Exception as e:
+                logger.error(f"Unexpected error occurred: {e}. Attempt {attempt + 1}/{max_retries}", exc_info=True)
+
+                if attempt < max_retries - 1:
+                    time.sleep(retry_interval)
+                    self.http_session = self.create_http_session()
+                else:
+                    logger.error(f"Unexpected error after {max_retries} retries. Giving up...")
+                    send_telegram_notification(f"⚠ Unexpected API call error: {e}")
+                    raise e
 
     def run_real_time_bot(self):
         logger.info("Starting Grid Bot...")
