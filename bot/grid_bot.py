@@ -81,9 +81,10 @@ class GridBot:
 
                 self.trading_strategy.balance = self.safe_api_call(self.trader.get_balance, "USDT")
                 if self.trading_strategy.balance is not None:
-                    logger.info(f"Balance updated: None USDT")
-                else:
                     logger.info(f"Balance updated: {self.trading_strategy.balance:.2f} USDT")
+                else:
+                    logger.info(f"Balance updated: None USDT")
+                    self.trading_strategy.balance = 0.0
 
                 close_price = self.safe_api_call(self.market_data.get_current_price, self.settings.symbol)
                 logger.info(f"Current Price: {close_price:.2f}")
