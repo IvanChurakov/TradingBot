@@ -59,7 +59,7 @@ class GridBot:
                 else:
                     logger.error(f"Unexpected error after {max_retries} retries. Giving up...")
                     send_telegram_notification(f"⚠ Unexpected API call error: {e}. Final")
-                    raise e
+                    raise
 
     def run_real_time_bot(self):
         logger.info("Starting Grid Bot...")
