@@ -46,6 +46,7 @@ class GridBot:
 
         for attempt in range(max_retries):
             try:
+                send_telegram_notification("safe api call")
                 return api_func(*args, **kwargs)
 
             except requests.exceptions.ReadTimeout as e:
