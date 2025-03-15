@@ -1,10 +1,6 @@
 import json
 import time
 
-import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
-
 from bot.grid_strategy import GridStrategy
 from bot.trader import Trader
 from bot.trading_strategy import TradingStrategy
@@ -86,7 +82,11 @@ class GridBot:
                     self.trading_strategy.balance = 0.0
 
                 close_price = self.safe_api_call(self.market_data.get_current_price, self.settings.symbol)
-                logger.info(f"Current Price: {close_price:.2f}")
+                if close_price is not None:
+                    logger.info(f"Current Price: {close_price:.2f}")
+                else:
+                    logger.info(f"BCurrent Price: None USDT")
+                    close_price = 0.0
 
                 decision = self.trading_strategy.process_price(close_price, timestamp=current_datetime_timestamp)
                 if decision:
@@ -97,23 +97,23 @@ class GridBot:
                     balance_info = self.trading_strategy.get_portfolio_balance(close_price)
 
                     balance_details = (
-                        f"💹 **Portfolio Balance**:\n"
-                        f"🔸 **USDT Balance**: {balance_info['usdt_balance']:.2f} USDT\n"
-                        f"🔹 **BTC Value (at current price)**: {balance_info['positions_usdt_value']:.2f} USDT\n"
-                        f"🔸 **BTC Bought Value**: {balance_info['btc_bought_value']:.2f} USDT\n"
-                        f"🔹 **Total BTC**: {balance_info['total_btc']:.6f} BTC\n"
-                        f"💼 **Total Portfolio Value**: {balance_info['total_balance']:.2f} USDT\n"
+                        f"💹 *Portfolio Balance*:\n"
+                        f"🔸 *USDT Balance*: {balance_info['usdt_balance']:.2f} USDT\n"
+                        f"🔹 *BTC Value (at current price)*: {balance_info['positions_usdt_value']:.2f} USDT\n"
+                        f"🔸 *BTC Bought Value*: {balance_info['btc_bought_value']:.2f} USDT\n"
+                        f"🔹 *Total BTC*: {balance_info['total_btc']:.6f} BTC\n"
+                        f"💼 *Total Portfolio Value*: {balance_info['total_balance']:.2f} USDT\n"
                     )
 
                     message = None
 
                     if action == "Buy":
                         message = (
-                            f"📈 **Grid Bot {action} Alert**\n\n"
-                            f"🔹 **Symbol**: {self.settings.symbol}\n"
-                            f"💵 **Buy Price**: {decision['price']:.2f}\n"
-                            f"💰 **Bought Amount**: {decision['amount']:.6f}\n"
-                            f"🔗 **Order Link ID**: {decision['orderLinkId']}\n\n"
+                            f"📈 *Grid Bot {action} Alert*\n\n"
+                            f"🔹 *Symbol*: {self.settings.symbol}\n"
+                            f"💵 *Buy Price*: {decision['price']:.2f}\n"
+                            f"💰 *Bought Amount*: {decision['amount']:.6f}\n"
+                            f"🔗 *Order Link ID*: {decision['orderLinkId']}\n\n"
                             f"{balance_details}"
                         )
                     elif action == "Sell":
@@ -121,11 +121,11 @@ class GridBot:
                         profit = last_trade['profit']
 
                         message = (
-                            f"📉 **Grid Bot {action} Alert**\n\n"
-                            f"🔹 **Symbol**: {self.settings.symbol}\n"
-                            f"💵 **Sell Price**: {decision['price']:.2f}\n"
-                            f"💰 **Sold Amount**: {decision['amount']:.6f}\n"
-                            f"💸 **Profit**: {profit:.2f} USDT\n\n"
+                            f"📉 *Grid Bot {action} Alert*\n\n"
+                            f"🔹 *Symbol*: {self.settings.symbol}\n"
+                            f"💵 *Sell Price*: {decision['price']:.2f}\n"
+                            f"💰 *Sold Amount*: {decision['amount']:.6f}\n"
+                            f"💸 *Profit*: {profit:.2f} USDT\n\n"
                             f"{balance_details}"
                         )
 
