@@ -78,8 +78,7 @@ class MarketData:
                         timestamp = int(entry[0])
                         close_price = float(entry[4])
 
-                        if not historical_prices or historical_prices[-1]["timestamp"] != timestamp:
-                            historical_prices.append({"timestamp": timestamp, "close_price": close_price})
+                        historical_prices.append({"timestamp": timestamp, "close_price": close_price})
 
                     logger.info(f"Fetched {len(kline_data)} entries for {symbol} from {format_timestamp(start_datetime)} to {format_timestamp(current_end_time)}.")
                     start_datetime = current_end_time + 1

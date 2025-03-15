@@ -112,14 +112,14 @@ class GridBot:
                         )
                     elif action == "Sell":
                         last_trade = self.trading_strategy.trade_results[-1]
-                        profit = last_trade['profit']
 
                         message = (
                             f"📉 *Grid Bot {action} Alert*\n\n"
                             f"🔹 *Symbol*: {self.settings.symbol}\n"
+                            f"💵 *Buy Price*: {last_trade['buy_price']:.2f}\n"
                             f"💵 *Sell Price*: {decision['price']:.2f}\n"
                             f"💰 *Sold Amount*: {decision['amount']:.6f}\n"
-                            f"💸 *Profit*: {profit:.2f} USDT\n\n"
+                            f"💸 *Profit*: {last_trade['profit']:.2f} USDT\n\n"
                             f"{balance_details}"
                         )
 
