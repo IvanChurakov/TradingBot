@@ -75,17 +75,11 @@ class GridBot:
                 self.update_positions()
 
                 self.trading_strategy.balance = self.safe_api_call(self.trader.get_balance, "USDT")
-                if self.trading_strategy.balance is not None:
-                    logger.info(f"Balance updated: {self.trading_strategy.balance:.2f} USDT")
-                else:
-                    logger.info(f"Balance updated: None USDT")
+                if self.trading_strategy.balance is None:
                     self.trading_strategy.balance = 0.0
 
                 close_price = self.safe_api_call(self.market_data.get_current_price, self.settings.symbol)
-                if close_price is not None:
-                    logger.info(f"Current Price: {close_price:.2f}")
-                else:
-                    logger.info(f"BCurrent Price: None USDT")
+                if close_price is None:
                     close_price = 0.0
 
                 decision = self.trading_strategy.process_price(close_price, timestamp=current_datetime_timestamp)
@@ -162,9 +156,7 @@ class GridBot:
             self.trading_strategy.grid_levels = self.grid_strategy.calculate_grid_levels_with_percentile(
                 historical_prices, self.settings.grid_levels_count
             )
-            logger.info(f"Grid recalculated successfully with {len(self.trading_strategy.grid_levels['levels'])} levels.")
 
-        logger.info(f"Retrieving min order amount at {format_timestamp(current_datetime_timestamp)}...")
         self.trading_strategy.min_order_amount = self.safe_api_call(self.market_data.get_min_order_amt, self.settings.symbol)
 
     def update_positions(self):
@@ -173,13 +165,10 @@ class GridBot:
         for position in active_orders:
             if not position["allowToSell"]:
                 order_link_id = position["orderLinkId"]
-                logger.info(f"Checking order with orderLinkId: {order_link_id}...")
 
                 if self.trader.is_order_closed(order_link_id):
                     logger.info(f"OrderLinkId {order_link_id} is closed. Marking as 'allowToSell'.")
                     self.trading_strategy.state_manager.update_order(order_link_id, allowToSell=True)
-                else:
-                    logger.info(f"Order with orderLinkId: {order_link_id} is still open.")
 
     def run_backtest(self, from_datetime, to_datetime, use_real_data=False):
         logger.info("Starting Backtest...")

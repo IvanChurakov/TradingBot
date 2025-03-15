@@ -5,8 +5,6 @@ from utils.telegram_utils import send_telegram_notification
 logger = setup_logger(log_dir="logs", days_to_keep=30)
 
 if __name__ == "__main__":
-    logger.info("Starting the bot...")
-
     try:
         grid_bot = GridBot()
         grid_bot.run_real_time_bot()

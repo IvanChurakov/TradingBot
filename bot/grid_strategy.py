@@ -15,16 +15,11 @@ class GridStrategy:
 
         min_price = np.percentile(historical_prices, 5)
         max_price = np.percentile(historical_prices, 95)
-        step = (max_price - min_price) / (grid_levels_count - 1)
 
-        levels = []
-        price = min_price
-        while price <= max_price:
-            levels.append(price)
-            price += step
+        levels = np.linspace(min_price, max_price, grid_levels_count).tolist()
 
         logger.info(
-            f"Percentile grid calculated: min={min_price:.2f}, max={max_price:.2f}, step={step:.2f}, levels={len(levels)}"
+            f"Percentile grid calculated: min={min_price:.2f}, max={max_price:.2f}, levels={len(levels)}"
         )
 
         return {
@@ -45,17 +40,12 @@ class GridStrategy:
 
         min_price = mean_price - k * std_dev_price
         max_price = mean_price + k * std_dev_price
-        step = (max_price - min_price) / (grid_levels_count - 1)
 
-        levels = []
-        price = min_price
-        while price <= max_price:
-            levels.append(price)
-            price += step
+        levels = np.linspace(min_price, max_price, grid_levels_count).tolist()
 
         logger.info(
             f"Standard deviation grid calculated: mean={mean_price:.2f}, std_dev={std_dev_price:.2f}, "
-            f"min={min_price:.2f}, max={max_price:.2f}, step={step:.2f}, levels={len(levels)}"
+            f"min={min_price:.2f}, max={max_price:.2f}, levels={len(levels)}"
         )
 
         return {
@@ -78,17 +68,12 @@ class GridStrategy:
 
         lower_band = moving_average - k * std_dev
         upper_band = moving_average + k * std_dev
-        step = (upper_band - lower_band) / (grid_levels_count - 1)
 
-        levels = []
-        price = lower_band
-        while price <= upper_band:
-            levels.append(price)
-            price += step
+        levels = np.linspace(lower_band, upper_band, grid_levels_count).tolist()
 
         logger.info(
             f"Bollinger Bands grid calculated: moving_average={moving_average:.2f}, std_dev={std_dev:.2f}, "
-            f"lower_band={lower_band:.2f}, upper_band={upper_band:.2f}, step={step:.2f}, levels={len(levels)}"
+            f"lower_band={lower_band:.2f}, upper_band={upper_band:.2f}, levels={len(levels)}"
         )
 
         return {
