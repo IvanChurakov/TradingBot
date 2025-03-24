@@ -86,18 +86,18 @@ class Trader:
             return None
 
     def place_order(self, symbol, decision):
-        logger.info(f"Placing {decision['action']} order for {symbol} with orderLinkId {decision['orderLinkId']}...")
+        logger.info(f"Placing {decision.action} order for {symbol} with orderLinkId {decision.orderLinkId}...")
 
         response = self.api_manager.safe_api_call(
             self.api_manager.http_session.place_order,
             category="spot",
             symbol=symbol,
-            side=decision["action"],
+            side=decision.action,
             orderType="Limit",
-            qty=decision["amount"],
-            price=decision["price"],
+            qty=decision.amount,
+            price=decision.price,
             timeInForce="GTC",
-            orderLinkId=decision["orderLinkId"]
+            orderLinkId=decision.orderLinkId
         )
 
         if response.get("retCode") == 0:
