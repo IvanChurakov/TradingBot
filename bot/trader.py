@@ -1,4 +1,4 @@
-from models.OrderPlacementResult import OrderPlacementResult
+from models.order_placement_result import OrderPlacementResult
 from utils.logging_utils import setup_logger
 
 
