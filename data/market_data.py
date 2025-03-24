@@ -43,10 +43,10 @@ class MarketData:
                 return current_price
             else:
                 logger.error(f"Error fetching market price for {symbol}: {response['retMsg']}")
-                return None
+                return 0.0
         except Exception as e:
             logger.error(f"An error occurred while fetching market price for {symbol}: {e}", exc_info=True)
-            return None
+            return 0.0
 
     def fetch_data_for_period(self, symbol, start_datetime, end_datetime, interval="1"):
         logger.info(f"Fetching historical data for symbol: {symbol} "

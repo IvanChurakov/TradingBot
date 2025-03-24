@@ -3,6 +3,7 @@ import time
 
 from bot.api_manager import APIManager
 from bot.grid_levels_calculator import GridLevelsCalculator
+from bot.state_manager import StateManager
 from bot.trader import Trader
 from data.market_data import MarketData
 from configs.settings import Settings
@@ -25,7 +26,8 @@ class GridBot:
         self.market_data = MarketData(self.api_manager)
         self.trader = Trader(self.api_manager)
         self.grid_Levels_calculator = GridLevelsCalculator()
-        self.grid_spot_strategy = GridSpotStrategy()
+        self.state_manager = StateManager()
+        self.grid_spot_strategy = GridSpotStrategy(self.state_manager)
         logger.info("GridBot modules initialized successfully.")
 
     def run_real_time_bot(self):
@@ -47,17 +49,26 @@ class GridBot:
                 self.update_positions()
 
                 self.grid_spot_strategy.balance = self.trader.get_balance("USDT")
-                if self.grid_spot_strategy.balance is None:
-                    self.grid_spot_strategy.balance = 0.0
 
                 close_price = self.market_data.get_current_price(self.settings.symbol)
-                if close_price is None:
-                    close_price = 0.0
 
                 decision = self.grid_spot_strategy.make_decision(close_price, timestamp=current_datetime_timestamp)
                 if decision:
                     logger.info(f"Decision made: {decision}")
-                    self.trader.place_order(self.settings.symbol, decision)
+
+                    order_placement_result = self.trader.place_order(self.settings.symbol, decision)
+                    if order_placement_result and order_placement_result.success:
+                        if decision.action == "Buy":
+                            self.state_manager.add_order(
+                                decision.orderLinkId,
+                                decision.amount,
+                                decision.price
+                            )
+                            logger.info(f"Buy order recorded in state manager: {decision.orderLinkId}")
+
+                        if decision.action == "Sell":
+                            self.state_manager.remove_order(decision.orderLinkId)
+                            logger.info(f"Sell order removed from state manager: {decision.orderLinkId}")
 
                     action = decision.action
                     balance_info = self.grid_spot_strategy.get_portfolio_balance(close_price)

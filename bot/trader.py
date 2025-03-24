@@ -1,3 +1,4 @@
+from models.OrderPlacementResult import OrderPlacementResult
 from utils.logging_utils import setup_logger
 
 
@@ -18,13 +19,13 @@ class Trader:
             )
         except Exception as e:
             logger.error(f"Error during balance fetching: {e}", exc_info=True)
-            return None
+            return 0.0
 
         if response.get("retCode") == 0:
             balance_data = response["result"].get("list", [])
             if not balance_data:
                 logger.warning("No balance data available from API response.")
-                return None
+                return 0.0
 
             for account in balance_data:
                 if account.get("accountType") == account_type:
@@ -47,10 +48,10 @@ class Trader:
                     return available_balances
 
             logger.warning(f"No account found with type {account_type} in API response.")
-            return None
+            return 0.0
         else:
             logger.error(f"Error fetching balance: {response.get('retMsg')}")
-            return None
+            return 0.0
 
     def is_order_closed(self, order_link_id):
         logger.info(f"Checking if order with orderLinkId: {order_link_id} is closed...")
@@ -87,26 +88,22 @@ class Trader:
     def place_order(self, symbol, decision):
         logger.info(f"Placing {decision['action']} order for {symbol} with orderLinkId {decision['orderLinkId']}...")
 
-        try:
-            response = self.api_manager.safe_api_call(
-                self.api_manager.http_session.place_order,
-                category="spot",
-                symbol=symbol,
-                side=decision.action,
-                orderType="Limit",
-                qty=decision.amount,
-                price=decision.price,
-                timeInForce="GTC",
-                orderLinkId=decision.orderLinkId
-            )
-        except Exception as e:
-            logger.error(f"Error during order placement: {e}", exc_info=True)
-            raise Exception(f"Error during order placement: {e}")
+        response = self.api_manager.safe_api_call(
+            self.api_manager.http_session.place_order,
+            category="spot",
+            symbol=symbol,
+            side=decision["action"],
+            orderType="Limit",
+            qty=decision["amount"],
+            price=decision["price"],
+            timeInForce="GTC",
+            orderLinkId=decision["orderLinkId"]
+        )
 
         if response.get("retCode") == 0:
             logger.info(f"Order placed successfully: {response['result']}")
-            return response["result"]
+            return OrderPlacementResult(success=True, result=response["result"])
         else:
             error_message = response.get("retMsg", "Unknown error")
             logger.error(f"Error placing order: {error_message}")
-            raise Exception(f"Error placing order: {error_message}")
+            return OrderPlacementResult(success=False, error_message=error_message)
