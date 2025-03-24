@@ -32,7 +32,7 @@ class GridSpotStrategy(BaseTradingStrategy):
             return self.execute_buy(current_price, thresholds.amount_to_spend)
 
         if self.should_sell(current_price, thresholds):
-            return self.execute_sell(current_price)
+            return self.execute_sell(current_price, timestamp)
 
         return None
 
