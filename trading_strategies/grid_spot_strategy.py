@@ -27,22 +27,12 @@ class GridSpotStrategy(BaseTradingStrategy):
             return None
 
         thresholds = self.calculate_grid_thresholds(current_price)
-        logger.info(f"Thresholds calculated: {thresholds}")
 
         if self.should_buy(current_price, thresholds):
-            return self.execute_buy(
-                current_price,
-                thresholds.lower_grid,
-                thresholds.lower_buy_threshold,
-                thresholds.amount_to_spend
-            )
+            return self.execute_buy(current_price, thresholds.amount_to_spend)
 
         if self.should_sell(current_price, thresholds):
-            return self.execute_sell(
-                current_price,
-                thresholds.upper_grid,
-                thresholds.upper_sell_threshold
-            )
+            return self.execute_sell(current_price)
 
         return None
 
@@ -82,7 +72,7 @@ class GridSpotStrategy(BaseTradingStrategy):
             return True
         return False
 
-    def execute_buy(self, current_price, lower_grid, lower_buy_threshold, amount_to_spend):
+    def execute_buy(self, current_price, amount_to_spend):
         bought_amount = amount_to_spend / current_price
         rounded_bought_amount = self.round_to_precision(bought_amount)
 
@@ -104,7 +94,7 @@ class GridSpotStrategy(BaseTradingStrategy):
             orderLinkId=order_link_id
         )
 
-    def execute_sell(self, current_price, upper_grid, upper_sell_threshold):
+    def execute_sell(self, current_price):
         active_orders = self.state_manager.get_orders()
         sorted_orders = sorted(active_orders, key=lambda order: order["price"])
 
