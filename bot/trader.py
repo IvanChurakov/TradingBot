@@ -80,7 +80,7 @@ class Trader:
                         return False
 
             logger.info(f"Order {order_link_id} not found in the response. Assuming it is closed.")
-            return True  # Якщо немає в списку, вважаємо закритим
+            return False
         else:
             logger.error(f"Error fetching open orders: {response.get('retMsg')}")
             return None
