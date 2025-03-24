@@ -1,12 +1,12 @@
 import json
 import time
 
-from bot.grid_strategy import GridStrategy
+from bot.api_manager import APIManager
+from bot.grid_levels_calculator import GridLevelsCalculator
 from bot.trader import Trader
-from bot.trading_strategy import TradingStrategy
 from data.market_data import MarketData
 from configs.settings import Settings
-from pybit.unified_trading import HTTP
+from trading_strategies.grid_spot_strategy import GridSpotStrategy
 from utils.datetime_utils import format_timestamp
 from utils.logging_utils import setup_logger
 from utils.telegram_utils import send_telegram_notification
@@ -19,42 +19,14 @@ class GridBot:
     def __init__(self):
         self.settings = Settings()
 
-        self.http_session = self.create_http_session()
         logger.info("HTTP session initialized with API keys.")
 
-        self.market_data = MarketData(self.http_session)
-        self.trader = Trader(self.http_session)
-        self.grid_strategy = GridStrategy()
-        self.trading_strategy = TradingStrategy()
+        self.api_manager = APIManager(self.settings.api_key, self.settings.api_secret)
+        self.market_data = MarketData(self.api_manager)
+        self.trader = Trader(self.api_manager)
+        self.grid_Levels_calculator = GridLevelsCalculator()
+        self.grid_spot_strategy = GridSpotStrategy()
         logger.info("GridBot modules initialized successfully.")
-
-    def create_http_session(self):
-        return HTTP(
-            testnet=False,
-            api_key=self.settings.api_key,
-            api_secret=self.settings.api_secret,
-            timeout=30
-        )
-
-    def safe_api_call(self, api_func, *args, **kwargs):
-        max_retries = 3
-        retry_interval = 30
-
-        for attempt in range(max_retries):
-            try:
-                return api_func(*args, **kwargs)
-
-            except Exception as e:
-                logger.error(f"Unexpected error occurred: {e}. Attempt {attempt + 1}/{max_retries}", exc_info=True)
-
-                if attempt < max_retries - 1:
-                    send_telegram_notification(f"⚠ Unexpected API call error: {e}. Attempt {attempt + 1}/{max_retries}")
-                    time.sleep(retry_interval)
-                    self.http_session = self.create_http_session()
-
-                else:
-                    logger.error(f"Unexpected error after {max_retries} retries. Giving up...")
-                    send_telegram_notification(f"⚠ Unexpected API call error: {e}. Final")
 
     def run_real_time_bot(self):
         logger.info("Starting Grid Bot...")
@@ -74,21 +46,21 @@ class GridBot:
 
                 self.update_positions()
 
-                self.trading_strategy.balance = self.safe_api_call(self.trader.get_balance, "USDT")
-                if self.trading_strategy.balance is None:
-                    self.trading_strategy.balance = 0.0
+                self.grid_spot_strategy.balance = self.trader.get_balance("USDT")
+                if self.grid_spot_strategy.balance is None:
+                    self.grid_spot_strategy.balance = 0.0
 
-                close_price = self.safe_api_call(self.market_data.get_current_price, self.settings.symbol)
+                close_price = self.market_data.get_current_price(self.settings.symbol)
                 if close_price is None:
                     close_price = 0.0
 
-                decision = self.trading_strategy.process_price(close_price, timestamp=current_datetime_timestamp)
+                decision = self.grid_spot_strategy.make_decision(close_price, timestamp=current_datetime_timestamp)
                 if decision:
                     logger.info(f"Decision made: {decision}")
-                    self.safe_api_call(self.trader.place_order, self.settings.symbol, decision)
+                    self.trader.place_order(self.settings.symbol, decision)
 
-                    action = decision['action']
-                    balance_info = self.trading_strategy.get_portfolio_balance(close_price)
+                    action = decision.action
+                    balance_info = self.grid_spot_strategy.get_portfolio_balance(close_price)
 
                     balance_details = (
                         f"💹 *Portfolio Balance*:\n"
@@ -105,13 +77,13 @@ class GridBot:
                         message = (
                             f"📈 *Grid Bot {action} Alert*\n\n"
                             f"🔹 *Symbol*: {self.settings.symbol}\n"
-                            f"💵 *Buy Price*: {decision['price']:.2f}\n"
-                            f"💰 *Bought Amount*: {decision['amount']:.6f}\n"
-                            f"🔗 *Order Link ID*: {decision['orderLinkId']}\n\n"
+                            f"💵 *Buy Price*: {decision.price:.2f}\n"
+                            f"💰 *Bought Amount*: {decision.amount:.6f}\n"
+                            f"🔗 *Order Link ID*: {decision.orderLinkId}\n\n"
                             f"{balance_details}"
                         )
                     elif action == "Sell":
-                        last_trade = self.trading_strategy.trade_results[-1]
+                        last_trade = self.grid_spot_strategy.trade_results[-1]
 
                         message = (
                             f"📉 *Grid Bot {action} Alert*\n\n"
@@ -136,40 +108,6 @@ class GridBot:
 
                 break
 
-    def refresh_data(self, current_datetime_timestamp):
-        logger.info(f"Recalculating grid levels at {format_timestamp(current_datetime_timestamp)}...")
-
-        start_time_for_calculation = current_datetime_timestamp - (
-            self.settings.grid_historical_days * 24 * 60 * 60 * 1000
-        )
-
-        historical_price_data = self.safe_api_call(
-            self.market_data.fetch_data_for_period,
-            self.settings.symbol, start_time_for_calculation, current_datetime_timestamp, "1"
-        )
-
-        historical_prices = [item["close_price"] for item in historical_price_data]
-
-        if not historical_prices:
-            logger.warning(f"No sufficient data for recalculation at {format_timestamp(current_datetime_timestamp)}")
-        else:
-            self.trading_strategy.grid_levels = self.grid_strategy.calculate_grid_levels_with_percentile(
-                historical_prices, self.settings.grid_levels_count
-            )
-
-        self.trading_strategy.min_order_amount = self.safe_api_call(self.market_data.get_min_order_amt, self.settings.symbol)
-
-    def update_positions(self):
-        active_orders = self.trading_strategy.state_manager.get_orders()
-
-        for position in active_orders:
-            if not position["allowToSell"]:
-                order_link_id = position["orderLinkId"]
-
-                if self.trader.is_order_closed(order_link_id):
-                    logger.info(f"OrderLinkId {order_link_id} is closed. Marking as 'allowToSell'.")
-                    self.trading_strategy.state_manager.update_order(order_link_id, allowToSell=True)
-
     def run_backtest(self, from_datetime, to_datetime, use_real_data=False):
         logger.info("Starting Backtest...")
 
@@ -184,7 +122,7 @@ class GridBot:
         logger.info("Starting backtest simulation...")
 
         historical_prices = [item["close_price"] for item in historical_price_data]
-        self.trading_strategy.grid_levels = self.grid_strategy.calculate_grid_levels_with_percentile(
+        self.grid_spot_strategy.grid_levels = self.grid_Levels_calculator.calculate_grid_levels_with_percentile(
             historical_prices, self.settings.grid_levels_count
         )
 
@@ -210,25 +148,62 @@ class GridBot:
                 if not relevant_prices:
                     logger.warning(f"No sufficient data for recalculation at {timestamp}")
                 else:
-                    self.trading_strategy.grid_levels = self.grid_strategy.calculate_grid_levels_with_percentile(
+                    self.grid_spot_strategy.grid_levels = self.grid_Levels_calculator.calculate_grid_levels_with_percentile(
                         relevant_prices, self.settings.grid_levels_count
                     )
 
                 logger.info(f"Retrieving min order amount at {format_timestamp(timestamp)}...")
 
                 if use_real_data:
-                    self.trading_strategy.min_order_amount = self.market_data.get_min_order_amt(self.settings.symbol)
+                    self.grid_spot_strategy.min_order_amount = self.market_data.get_min_order_amt(self.settings.symbol)
                 else:
-                    self.trading_strategy.min_order_amount = self.settings.min_transaction_amount
+                    self.grid_spot_strategy.min_order_amount = self.settings.min_transaction_amount
 
                 next_grid_recalculation_time += recalculation_interval_ms
 
-            decision = self.trading_strategy.process_price(close_price, timestamp=timestamp)
+            decision = self.grid_spot_strategy.process_price(close_price, timestamp=timestamp)
 
         total_profit = sum(
-            trade["profit"] for trade in self.trading_strategy.trade_results if "profit" in trade
+            trade["profit"] for trade in self.grid_spot_strategy.trade_results if "profit" in trade
         )
         logger.info(f"Backtest finished successfully. Total Profit: {total_profit:.2f} USDT")
+
+    def refresh_data(self, current_datetime_timestamp):
+        logger.info(f"Recalculating grid levels at {format_timestamp(current_datetime_timestamp)}...")
+
+        start_time_for_calculation = current_datetime_timestamp - (
+            self.settings.grid_historical_days * 24 * 60 * 60 * 1000
+        )
+
+        historical_price_data = self.market_data.fetch_data_for_period(
+            self.settings.symbol,
+            start_time_for_calculation,
+            current_datetime_timestamp,
+            "1"
+        )
+
+        historical_prices = [item["close_price"] for item in historical_price_data]
+
+        if not historical_prices:
+            logger.warning(f"No sufficient data for recalculation at {format_timestamp(current_datetime_timestamp)}")
+        else:
+            self.grid_spot_strategy.grid_levels = self.grid_Levels_calculator.calculate_grid_levels_with_percentile(
+                historical_prices, self.settings.grid_levels_count
+            )
+
+        self.grid_spot_strategy.min_order_amount = self.market_data.get_min_order_amt(self.settings.symbol)
+
+    #TODO:Move to stateManager class
+    def update_positions(self):
+        active_orders = self.grid_spot_strategy.state_manager.get_orders()
+
+        for position in active_orders:
+            if not position["allowToSell"]:
+                order_link_id = position["orderLinkId"]
+
+                if self.trader.is_order_closed(order_link_id):
+                    logger.info(f"OrderLinkId {order_link_id} is closed. Marking as 'allowToSell'.")
+                    self.grid_spot_strategy.state_manager.update_order(order_link_id, allowToSell=True)
 
     def fetch_historical_data(self, from_timestamp, to_timestamp, use_real_data):
         if use_real_data:

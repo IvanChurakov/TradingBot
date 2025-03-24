@@ -7,15 +7,16 @@ logger = setup_logger(log_dir="logs", days_to_keep=30)
 
 
 class MarketData:
-    def __init__(self, http_session):
-        self.http_session = http_session
+    def __init__(self, api_manager):
+        self.api_manager = api_manager
         self.settings = Settings()
         logger.info("MarketData initialized successfully.")
 
     def get_min_order_amt(self, symbol):
         logger.info(f"Fetching min order amount for symbol: {symbol}...")
         try:
-            response = self.http_session.get_instruments_info(category="spot", symbol=symbol)
+            response = self.api_manager.safe_api_call(
+                self.api_manager.http_session.get_instruments_info, category="spot", symbol=symbol)
 
             if response.get("retCode") == 0:
                 instruments = response.get("result", {}).get("list", [])
@@ -33,7 +34,8 @@ class MarketData:
     def get_current_price(self, symbol):
         logger.info(f"Fetching current price for symbol: {symbol}...")
         try:
-            response = self.http_session.get_tickers(category="spot", symbol=symbol)
+            response = self.api_manager.safe_api_call(
+                self.api_manager.http_session.get_tickers, category="spot", symbol=symbol)
 
             if response.get("retCode") == 0:
                 current_price = float(response["result"]["list"][0]["lastPrice"])
@@ -59,7 +61,8 @@ class MarketData:
 
                 logger.info(f"Fetching data from {format_timestamp(start_datetime)} to {format_timestamp(current_end_time)}...")
 
-                response = self.http_session.get_kline(
+                response = self.api_manager.safe_api_call(
+                    self.api_manager.http_session.get_kline,
                     category="spot",
                     symbol=symbol,
                     interval=interval,

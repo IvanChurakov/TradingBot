@@ -2,30 +2,33 @@ from bot.state_manager import StateManager
 import secrets
 import string
 from configs.settings import Settings
+from models.grid_levels import GridLevels
+from models.spot_trading_decision import SpotTradingDecision
+from trading_strategies.base_strategy import BaseTradingStrategy
 from utils.logging_utils import setup_logger
 from decimal import Decimal, ROUND_DOWN
 
 
 logger = setup_logger(log_dir="logs", days_to_keep=30)
 
-class TradingStrategy:
+class GridSpotStrategy(BaseTradingStrategy):
     def __init__(self):
         self.settings = Settings()
-        self.grid_levels = {"levels": [], "min": None, "max": None}
-        self.qty_precision = 6
-        self.balance = 200
+        self.grid_levels = GridLevels(levels=[], min=0, max=0)
+        self.balance = 0
+        #TODO: maybe store in somewhere
         self.trade_results = []
 
         self.state_manager = StateManager()
         logger.info("TradingStrategy initialized.")
 
-    def process_price(self, current_price, timestamp):
-        if current_price < min(self.grid_levels["levels"]) or current_price > max(self.grid_levels["levels"]):
+    def make_decision(self, current_price, timestamp):
+        if current_price < self.grid_levels.min or current_price > self.grid_levels.max:
             logger.info(f"Current price {current_price:.2f} is out of grid range. No action taken.")
             return None
 
-        lower_grid = max((level for level in self.grid_levels["levels"] if level <= current_price), default=None)
-        upper_grid = min((level for level in self.grid_levels["levels"] if level >= current_price), default=None)
+        lower_grid = max((level for level in self.grid_levels.levels if level <= current_price), default=None)
+        upper_grid = min((level for level in self.grid_levels.levels if level >= current_price), default=None)
 
         grid_distance = upper_grid - lower_grid
         lower_buy_threshold = lower_grid + grid_distance * 0.49
@@ -55,12 +58,12 @@ class TradingStrategy:
 
             logger.info(f"Buy executed @ {current_price:.7f}, Amount: {rounded_bought_amount:.6f}, "
                         f"Remaining Balance: {self.balance:.2f}")
-            return {
-                "action": "Buy",
-                "price": current_price,
-                "amount": rounded_bought_amount,
-                "orderLinkId": order_link_id
-            }
+            return SpotTradingDecision(
+                action="Buy",
+                price=current_price,
+                amount=rounded_bought_amount,
+                orderLinkId=order_link_id
+            )
 
         if upper_grid >= current_price > upper_sell_threshold:
             active_orders = self.state_manager.get_orders()
@@ -86,15 +89,16 @@ class TradingStrategy:
                 logger.info(f"SELL executed @ {current_price:.7f}, Profit: {profit:.2f}, "
                             f"Sold Amount: {sale_amount:.2f}, Updated Balance: {self.balance:.2f}")
 
-                return {
-                    "action": "Sell",
-                    "price": current_price,
-                    "amount": active_order['amount'],
-                    "orderLinkId": order_link_id
-                }
+                return SpotTradingDecision(
+                    action="Sell",
+                    price=current_price,
+                    amount=active_order['amount'],
+                    orderLinkId=order_link_id
+                )
 
         return None
 
+    #TODO: move to trader class
     def get_portfolio_balance(self, current_price):
         active_orders = self.state_manager.get_orders()
 

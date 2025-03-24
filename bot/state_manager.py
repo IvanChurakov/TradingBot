@@ -7,6 +7,7 @@ from utils.logging_utils import setup_logger
 logger = setup_logger(log_dir="logs", days_to_keep=30)
 
 
+#TODO: Create model for records
 class StateManager:
     def __init__(self, table_name="Orders"):
         self.table_name = table_name

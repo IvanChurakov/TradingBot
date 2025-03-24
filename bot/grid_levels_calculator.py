@@ -1,11 +1,13 @@
 import numpy as np
+
+from models.grid_levels import GridLevels
 from utils.logging_utils import setup_logger
 
 
 logger = setup_logger(log_dir="logs", days_to_keep=30)
 
 
-class GridStrategy:
+class GridLevelsCalculator:
     @staticmethod
     def calculate_grid_levels_with_percentile(historical_prices, grid_levels_count):
         logger.info("Calculating grid levels using percentiles...")
@@ -22,11 +24,7 @@ class GridStrategy:
             f"Percentile grid calculated: min={min_price:.2f}, max={max_price:.2f}, levels={len(levels)}"
         )
 
-        return {
-            "levels": levels,
-            "min": min_price,
-            "max": max_price
-        }
+        return GridLevels(levels=levels, min=float(min_price), max=float(max_price))
 
     @staticmethod
     def calculate_grid_levels_with_standard_deviation(historical_prices, grid_levels_count, k=2):
@@ -48,11 +46,7 @@ class GridStrategy:
             f"min={min_price:.2f}, max={max_price:.2f}, levels={len(levels)}"
         )
 
-        return {
-            "levels": levels,
-            "min": min_price,
-            "max": max_price
-        }
+        return GridLevels(levels=levels, min=min_price, max=max_price)
 
     @staticmethod
     def calculate_grid_levels_bollinger(historical_prices, grid_levels_count, n_points=20, k=2):
@@ -76,8 +70,4 @@ class GridStrategy:
             f"lower_band={lower_band:.2f}, upper_band={upper_band:.2f}, levels={len(levels)}"
         )
 
-        return {
-            "levels": levels,
-            "min": lower_band,
-            "max": upper_band
-        }
+        return GridLevels(levels=levels, min=float(lower_band), max=float(upper_band))

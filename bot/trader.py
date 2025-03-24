@@ -5,13 +5,17 @@ logger = setup_logger(log_dir="logs", days_to_keep=30)
 
 
 class Trader:
-    def __init__(self, http_session):
-        self.http_session = http_session
+    def __init__(self, api_manager):
+        self.api_manager = api_manager
 
     def get_balance(self, coin=None, account_type="UNIFIED"):
         logger.info(f"Fetching balance information for accountType={account_type}, coin={coin}.")
         try:
-            response = self.http_session.get_wallet_balance(accountType=account_type, coin=coin)
+            response = self.api_manager.safe_api_call(
+                self.api_manager.http_session.get_wallet_balance,
+                accountType=account_type,
+                coin=coin
+            )
         except Exception as e:
             logger.error(f"Error during balance fetching: {e}", exc_info=True)
             return None
@@ -52,7 +56,8 @@ class Trader:
         logger.info(f"Checking if order with orderLinkId: {order_link_id} is closed...")
 
         try:
-            response = self.http_session.get_open_orders(
+            response = self.api_manager.safe_api_call(
+                self.api_manager.http_session.get_open_orders,
                 category="spot",
                 orderLinkId=order_link_id
             )
@@ -83,15 +88,16 @@ class Trader:
         logger.info(f"Placing {decision['action']} order for {symbol} with orderLinkId {decision['orderLinkId']}...")
 
         try:
-            response = self.http_session.place_order(
+            response = self.api_manager.safe_api_call(
+                self.api_manager.http_session.place_order,
                 category="spot",
                 symbol=symbol,
-                side=decision["action"],
+                side=decision.action,
                 orderType="Limit",
-                qty=decision["amount"],
-                price=decision["price"],
+                qty=decision.amount,
+                price=decision.price,
                 timeInForce="GTC",
-                orderLinkId=decision["orderLinkId"],
+                orderLinkId=decision.orderLinkId
             )
         except Exception as e:
             logger.error(f"Error during order placement: {e}", exc_info=True)
