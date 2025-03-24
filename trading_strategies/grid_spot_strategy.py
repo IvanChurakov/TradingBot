@@ -106,11 +106,12 @@ class GridSpotStrategy(BaseTradingStrategy):
         if active_order:
             profit = (current_price - active_order["price"]) * active_order["amount"]
             logger.info(f"Sell decision made @ {current_price:.7f}, Profit: {profit:.2f}")
+            order_link_id = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(16))
             return SpotTradingDecision(
                 action="Sell",
                 price=current_price,
                 amount=active_order["amount"],
-                orderLinkId=active_order["orderLinkId"]
+                orderLinkId=order_link_id
             )
 
         return None
