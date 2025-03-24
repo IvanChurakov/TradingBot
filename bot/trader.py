@@ -100,6 +100,10 @@ class Trader:
             orderLinkId=decision.orderLinkId
         )
 
+        if response is None:
+            logger.error(f"Failed to place order {decision.orderLinkId}. No response from API.")
+            return OrderPlacementResult(success=False, error_message="No response from API")
+
         if response.get("retCode") == 0:
             logger.info(f"Order placed successfully: {response['result']}")
             return OrderPlacementResult(success=True, result=response["result"])
