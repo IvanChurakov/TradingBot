@@ -73,20 +73,8 @@ class GridSpotStrategy(BaseTradingStrategy):
         return False
 
     def execute_buy(self, current_price, amount_to_spend):
-        logger.info(
-            f"Executing buy: Current Balance = {self.balance}, "
-            f"Current Price = {current_price}, Amount to Spend = {amount_to_spend}"
-        )
-
         bought_amount = amount_to_spend / current_price
         rounded_bought_amount = self.round_to_precision(bought_amount)
-
-        logger.info(
-            f"Attempting to buy: Bought Amount (pre-rounded) = {bought_amount}, "
-            f"Rounded Bought Amount = {rounded_bought_amount}, "
-            f"Total Cost = {rounded_bought_amount * current_price}, "
-            f"Balance Remaining After Purchase = {self.balance - rounded_bought_amount * current_price}"
-        )
 
         if rounded_bought_amount == 0:
             logger.info(f"Buy skipped. Rounded bought amount is 0. Current price: {current_price:.2f}, "

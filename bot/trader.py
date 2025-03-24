@@ -35,8 +35,14 @@ class Trader:
                         for item in coins:
                             if item["coin"] == coin:
                                 wallet_balance = float(item.get("walletBalance", 0))
-                                logger.info(f"Found wallet balance for {coin}: {wallet_balance}")
-                                return wallet_balance
+                                locked_balance = float(item.get("locked", 0))
+                                available_balance = wallet_balance - locked_balance
+
+                                logger.info(
+                                    f"Coin: {coin}, Wallet Balance: {wallet_balance:.6f}, "
+                                    f"Locked Balance: {locked_balance:.6f}, Available Balance: {available_balance:.6f}"
+                                )
+                                return available_balance
                         logger.info(f"Coin {coin} not found in accountType={account_type}. Returning 0.0 balance.")
                         return 0.0
 
