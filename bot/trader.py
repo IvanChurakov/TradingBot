@@ -89,7 +89,7 @@ class Trader:
             return False
         else:
             logger.error(f"Error fetching open orders: {response.get('retMsg')}")
-            return None
+            return False
 
     def place_order(self, symbol, decision):
         logger.info(f"Placing {decision.action} order for {symbol} with orderLinkId {decision.orderLinkId}...")

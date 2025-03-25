@@ -213,7 +213,7 @@ class GridBot:
                 order_link_id = position["orderLinkId"]
 
                 order_placement_result = self.trader.is_order_closed(order_link_id)
-                if order_placement_result and order_placement_result.success:
+                if order_placement_result and order_placement_result == True:
                     logger.info(f"OrderLinkId {order_link_id} is closed. Marking as 'allowToSell'.")
                     self.grid_spot_strategy.state_manager.update_order(order_link_id, allowToSell=True)
 
