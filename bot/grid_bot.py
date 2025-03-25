@@ -67,8 +67,8 @@ class GridBot:
                             logger.info(f"Buy order recorded in state manager: {decision.orderLinkId}")
 
                         if decision.action == "Sell":
-                            self.state_manager.remove_order(decision.orderLinkId)
-                            logger.info(f"Sell order removed from state manager: {decision.orderLinkId}")
+                            self.state_manager.remove_order(decision.buyOrderLinkId)
+                            logger.info(f"Sell order removed from state manager: {decision.buyOrderLinkId}")
 
                         action = decision.action
                         balance_info = self.grid_spot_strategy.get_portfolio_balance(close_price)

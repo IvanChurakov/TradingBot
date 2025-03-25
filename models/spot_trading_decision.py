@@ -6,3 +6,4 @@ class SpotTradingDecision:
     price: float
     amount: float
     orderLinkId: str
+    buyOrderLinkId: str

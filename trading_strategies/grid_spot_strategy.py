@@ -91,7 +91,8 @@ class GridSpotStrategy(BaseTradingStrategy):
             action="Buy",
             price=current_price,
             amount=rounded_bought_amount,
-            orderLinkId=order_link_id
+            orderLinkId=order_link_id,
+            buyOrderLinkId=""
         )
 
     def execute_sell(self, current_price, timestamp):
@@ -124,7 +125,8 @@ class GridSpotStrategy(BaseTradingStrategy):
                 action="Sell",
                 price=current_price,
                 amount=active_order["amount"],
-                orderLinkId=order_link_id
+                orderLinkId=order_link_id,
+                buyOrderLinkId=active_order["orderLinkId"]
             )
 
         return None

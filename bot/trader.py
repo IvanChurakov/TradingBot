@@ -70,7 +70,7 @@ class Trader:
             )
         except Exception as e:
             logger.error(f"Error during order status check: {e}", exc_info=True)
-            return None
+            return False
 
         if response.get("retCode") == 0:
             orders = response.get("result", {}).get("list", [])
