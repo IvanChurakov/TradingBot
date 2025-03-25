@@ -70,44 +70,44 @@ class GridBot:
                             self.state_manager.remove_order(decision.orderLinkId)
                             logger.info(f"Sell order removed from state manager: {decision.orderLinkId}")
 
-                    action = decision.action
-                    balance_info = self.grid_spot_strategy.get_portfolio_balance(close_price)
+                        action = decision.action
+                        balance_info = self.grid_spot_strategy.get_portfolio_balance(close_price)
 
-                    balance_details = (
-                        f"💹 *Portfolio Balance*:\n"
-                        f"🔸 *USDT Balance*: {balance_info['usdt_balance']:.2f} USDT\n"
-                        f"🔹 *BTC Value (at current price)*: {balance_info['positions_usdt_value']:.2f} USDT\n"
-                        f"🔸 *BTC Bought Value*: {balance_info['btc_bought_value']:.2f} USDT\n"
-                        f"🔹 *Total BTC*: {balance_info['total_btc']:.6f} BTC\n"
-                        f"💼 *Total Portfolio Value*: {balance_info['total_balance']:.2f} USDT\n"
-                    )
-
-                    message = None
-
-                    if action == "Buy":
-                        message = (
-                            f"📈 *Grid Bot {action} Alert*\n\n"
-                            f"🔹 *Symbol*: {self.settings.symbol}\n"
-                            f"💵 *Buy Price*: {decision.price:.2f}\n"
-                            f"💰 *Bought Amount*: {decision.amount:.6f}\n"
-                            f"🔗 *Order Link ID*: {decision.orderLinkId}\n\n"
-                            f"{balance_details}"
-                        )
-                    elif action == "Sell":
-                        last_trade = self.grid_spot_strategy.trade_results[-1]
-
-                        message = (
-                            f"📉 *Grid Bot {action} Alert*\n\n"
-                            f"🔹 *Symbol*: {self.settings.symbol}\n"
-                            f"💵 *Buy Price*: {last_trade['buy_price']:.2f}\n"
-                            f"💵 *Sell Price*: {decision.price:.2f}\n"
-                            f"💰 *Sold Amount*: {decision.amount:.6f}\n"
-                            f"💸 *Profit*: {last_trade['profit']:.2f} USDT\n\n"
-                            f"{balance_details}"
+                        balance_details = (
+                            f"💹 *Portfolio Balance*:\n"
+                            f"🔸 *USDT Balance*: {balance_info['usdt_balance']:.2f} USDT\n"
+                            f"🔹 *BTC Value (at current price)*: {balance_info['positions_usdt_value']:.2f} USDT\n"
+                            f"🔸 *BTC Bought Value*: {balance_info['btc_bought_value']:.2f} USDT\n"
+                            f"🔹 *Total BTC*: {balance_info['total_btc']:.6f} BTC\n"
+                            f"💼 *Total Portfolio Value*: {balance_info['total_balance']:.2f} USDT\n"
                         )
 
-                    if message:
-                        send_telegram_notification(message)
+                        message = None
+
+                        if action == "Buy":
+                            message = (
+                                f"📈 *Grid Bot {action} Alert*\n\n"
+                                f"🔹 *Symbol*: {self.settings.symbol}\n"
+                                f"💵 *Buy Price*: {decision.price:.2f}\n"
+                                f"💰 *Bought Amount*: {decision.amount:.6f}\n"
+                                f"🔗 *Order Link ID*: {decision.orderLinkId}\n\n"
+                                f"{balance_details}"
+                            )
+                        elif action == "Sell":
+                            last_trade = self.grid_spot_strategy.trade_results[-1]
+
+                            message = (
+                                f"📉 *Grid Bot {action} Alert*\n\n"
+                                f"🔹 *Symbol*: {self.settings.symbol}\n"
+                                f"💵 *Buy Price*: {last_trade['buy_price']:.2f}\n"
+                                f"💵 *Sell Price*: {decision.price:.2f}\n"
+                                f"💰 *Sold Amount*: {decision.amount:.6f}\n"
+                                f"💸 *Profit*: {last_trade['profit']:.2f} USDT\n\n"
+                                f"{balance_details}"
+                            )
+
+                        if message:
+                            send_telegram_notification(message)
 
                 time.sleep(self.settings.trading_interval)
 
@@ -212,7 +212,8 @@ class GridBot:
             if not position["allowToSell"]:
                 order_link_id = position["orderLinkId"]
 
-                if self.trader.is_order_closed(order_link_id):
+                order_placement_result = self.trader.is_order_closed(order_link_id)
+                if order_placement_result and order_placement_result.success:
                     logger.info(f"OrderLinkId {order_link_id} is closed. Marking as 'allowToSell'.")
                     self.grid_spot_strategy.state_manager.update_order(order_link_id, allowToSell=True)
 

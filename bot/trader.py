@@ -85,7 +85,7 @@ class Trader:
                         logger.info(f"Order {order_link_id} is still open (status: {order_status}).")
                         return False
 
-            logger.info(f"Order {order_link_id} not found in the response. Assuming it is closed.")
+            logger.info(f"Order {order_link_id} not found in the response. Assuming it is not closed.")
             return False
         else:
             logger.error(f"Error fetching open orders: {response.get('retMsg')}")
