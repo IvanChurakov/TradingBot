@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import Optional
 
 
@@ -21,8 +22,8 @@ class Order:
     def to_dict(self) -> dict:
         return {
             "orderLinkId": self.order_link_id,
-            "amount": self.amount,
-            "price": self.price,
+            "amount": Decimal(self.amount),
+            "price": Decimal(self.price),
             "allowToSell": self.allow_to_sell
         }
 
