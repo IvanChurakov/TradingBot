@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+#TODO: remove dataclass
 @dataclass
 class GridThresholds:
     lower_grid: float

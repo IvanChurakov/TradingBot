@@ -3,6 +3,7 @@ import logging
 import os
 from datetime import datetime, timedelta
 
+
 def setup_logger(log_dir="logs", days_to_keep=30):
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
@@ -33,7 +34,6 @@ def setup_logger(log_dir="logs", days_to_keep=30):
 
     return logger
 
-
 def cleanup_old_logs(log_dir, days_to_keep=30):
     now = datetime.now()
     cutoff_archive = now - timedelta(days=1)
@@ -55,7 +55,6 @@ def cleanup_old_logs(log_dir, days_to_keep=30):
             if last_modified_date < cutoff_delete:
                 os.remove(log_path)
                 print(f"Deleted old log file: {log_file}")
-
 
 def archive_log_file(log_path):
     with open(log_path, "rb") as f_in:

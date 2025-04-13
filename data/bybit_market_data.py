@@ -1,4 +1,8 @@
+from typing import List, Dict, Union
+
+from api_managers.base_api_manager import BaseAPIManager
 from configs.settings import Settings
+from data.base_market_data import BaseMarketData
 from utils.datetime_utils import to_milliseconds_from_minutes, format_timestamp
 from utils.logging_utils import setup_logger
 
@@ -6,17 +10,17 @@ from utils.logging_utils import setup_logger
 logger = setup_logger(log_dir="logs", days_to_keep=30)
 
 
-class MarketData:
-    def __init__(self, api_manager):
+class BybitMarketData(BaseMarketData):
+    def __init__(self, api_manager: BaseAPIManager):
         self.api_manager = api_manager
         self.settings = Settings()
         logger.info("MarketData initialized successfully.")
 
-    def get_min_order_amt(self, symbol):
+    def get_min_order_amt(self, symbol: str) -> float:
         logger.info(f"Fetching min order amount for symbol: {symbol}...")
         try:
             response = self.api_manager.safe_api_call(
-                self.api_manager.http_session.get_instruments_info, category="spot", symbol=symbol)
+                self.api_manager.get_http_session().get_instruments_info, category="spot", symbol=symbol)
 
             if response.get("retCode") == 0:
                 instruments = response.get("result", {}).get("list", [])
@@ -31,11 +35,11 @@ class MarketData:
             logger.error(f"An error occurred while fetching min order amount for {symbol}: {e}", exc_info=True)
             return 5
 
-    def get_current_price(self, symbol):
+    def get_current_price(self, symbol: str) -> float:
         logger.info(f"Fetching current price for symbol: {symbol}...")
         try:
             response = self.api_manager.safe_api_call(
-                self.api_manager.http_session.get_tickers, category="spot", symbol=symbol)
+                self.api_manager.get_http_session().get_tickers, category="spot", symbol=symbol)
 
             if response.get("retCode") == 0:
                 current_price = float(response["result"]["list"][0]["lastPrice"])
@@ -48,7 +52,7 @@ class MarketData:
             logger.error(f"An error occurred while fetching market price for {symbol}: {e}", exc_info=True)
             return 0.0
 
-    def fetch_data_for_period(self, symbol, start_datetime, end_datetime, interval="1"):
+    def fetch_data_for_period(self, symbol: str, start_datetime: int, end_datetime: int, interval: str = "1") -> List[Dict[str, Union[int, float]]]:
         logger.info(f"Fetching historical data for symbol: {symbol} "
                     f"from {format_timestamp(start_datetime)} to {format_timestamp(end_datetime)} with interval {interval}...")
         try:
@@ -62,7 +66,7 @@ class MarketData:
                 logger.info(f"Fetching data from {format_timestamp(start_datetime)} to {format_timestamp(current_end_time)}...")
 
                 response = self.api_manager.safe_api_call(
-                    self.api_manager.http_session.get_kline,
+                    self.api_manager.get_http_session().get_kline,
                     category="spot",
                     symbol=symbol,
                     interval=interval,
