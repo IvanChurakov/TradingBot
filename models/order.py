@@ -35,3 +35,15 @@ class Order:
             price=float(data["price"]),
             allow_to_sell=data.get("allowToSell", False)
         )
+
+    def __str__(self) -> str:
+        return (
+            f"Order("
+            f"orderLinkId = {self.order_link_id}, "
+            f"amount={self.amount}, "
+            f"price={self.price}, "
+            f"allowToSell={self.allow_to_sell}, "
+            f"action={self.action}, "
+            f"buy_order_link_id={self.buy_order_link_id}"
+            f")"
+        )

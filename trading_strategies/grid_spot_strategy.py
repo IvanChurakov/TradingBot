@@ -50,8 +50,8 @@ class GridSpotStrategy(BaseTradingStrategy):
         upper_grid = min((level for level in self.grid_levels.levels if level >= current_price), default=None)
 
         grid_distance = upper_grid - lower_grid if lower_grid is not None and upper_grid is not None else 0
-        lower_buy_threshold = lower_grid + grid_distance * 0.46 if lower_grid is not None else None
-        upper_sell_threshold = upper_grid - grid_distance * 0.46 if upper_grid is not None else None
+        lower_buy_threshold = lower_grid + grid_distance * 0.30 if lower_grid is not None else None
+        upper_sell_threshold = upper_grid - grid_distance * 0.30 if upper_grid is not None else None
 
         calculated_amount_to_spend = self.balance * self.settings.buy_percentage
         amount_to_spend = max(calculated_amount_to_spend, self.settings.min_transaction_amount)
