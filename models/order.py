@@ -22,8 +22,8 @@ class Order:
     def to_dict(self) -> dict:
         return {
             "orderLinkId": self.order_link_id,
-            "amount": Decimal(self.amount),
-            "price": Decimal(self.price),
+            "amount": Decimal(str(self.amount)),
+            "price": Decimal(str(self.price)),
             "allowToSell": self.allow_to_sell
         }
 
