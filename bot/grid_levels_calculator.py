@@ -85,5 +85,4 @@ class GridLevelsCalculator:
 
         logger.info(f"Uniform grid calculated: step_size={step_size:.2f}, levels_count={len(uniform_levels)}")
 
-        # Повернення результату
         return GridLevels(levels=uniform_levels, min=0.0, max=1_000_000)
