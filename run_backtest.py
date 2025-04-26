@@ -9,4 +9,4 @@ to_timestamp = int(to_datetime.timestamp() * 1000)
 
 grid_bot = GridBot()
 
-grid_bot.run_backtest(from_timestamp, to_timestamp, use_real_data=False)
+grid_bot.run_backtest(from_timestamp, to_timestamp, use_real_data=False, initial_balance=300)

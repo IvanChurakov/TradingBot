@@ -109,8 +109,8 @@ class GridBot:
 
                 break
 
-    def run_backtest(self, from_timestamp, to_timestamp, use_real_data=False):
-        self.trader = BacktestTrader(initial_balance=300)
+    def run_backtest(self, from_timestamp, to_timestamp, use_real_data=False, initial_balance=300):
+        self.trader = BacktestTrader(initial_balance=initial_balance)
         self.order_manager = BacktestOrderManager()
         self.grid_spot_strategy = GridSpotStrategy(self.order_manager)
 
@@ -147,7 +147,7 @@ class GridBot:
                     logger.warning(
                         f"No historical prices available for calculation. Current time: {current_datetime_human_readable}")
                 else:
-                    self.grid_spot_strategy.grid_levels = self.grid_levels_calculator.calculate_grid_levels_with_percentile(
+                    self.grid_spot_strategy.grid_levels = self.grid_levels_calculator.calculate_uniform_grid_levels_from_step(
                         filtered_historical_prices, self.settings.grid_levels_count
                     )
 
@@ -193,7 +193,7 @@ class GridBot:
         if not historical_prices:
             logger.warning(f"No sufficient data for recalculation at {format_timestamp(current_datetime_timestamp)}")
         else:
-            self.grid_spot_strategy.grid_levels = self.grid_levels_calculator.calculate_grid_levels_with_percentile(
+            self.grid_spot_strategy.grid_levels = self.grid_levels_calculator.calculate_uniform_grid_levels_from_step(
                 historical_prices, self.settings.grid_levels_count
             )
 

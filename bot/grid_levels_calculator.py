@@ -15,8 +15,7 @@ class GridLevelsCalculator:
             logger.error("Insufficient historical data to calculate grid levels.")
             raise ValueError("Insufficient historical data to calculate grid levels")
 
-        min_price = np.percentile(historical_prices, 5)
-        max_price = np.percentile(historical_prices, 95)
+        min_price, max_price = np.percentile(historical_prices, [5, 95])
 
         levels = np.linspace(min_price, max_price, grid_levels_count).tolist()
 
@@ -71,3 +70,20 @@ class GridLevelsCalculator:
         )
 
         return GridLevels(levels=levels, min=float(lower_band), max=float(upper_band))
+
+    @staticmethod
+    def calculate_uniform_grid_levels_from_step(historical_prices, grid_levels_count):
+        logger.info("Calculating uniform grid levels with step from 0 to 1,000,000...")
+        if not historical_prices or len(historical_prices) < 2:
+            logger.error("Insufficient historical data to calculate uniform grid levels.")
+            raise ValueError("Insufficient historical data to calculate uniform grid levels")
+
+        min_price, max_price = np.percentile(historical_prices, [5, 95])
+        step_size = (max_price - min_price) / (grid_levels_count - 1)
+
+        uniform_levels = np.arange(0, 1_000_000 + step_size, step_size).tolist()
+
+        logger.info(f"Uniform grid calculated: step_size={step_size:.2f}, levels_count={len(uniform_levels)}")
+
+        # Повернення результату
+        return GridLevels(levels=uniform_levels, min=0.0, max=1_000_000)
