@@ -49,12 +49,12 @@ class GridSpotStrategy(BaseTradingStrategy):
         upper = thresholds.upper_grid
 
         if lower is not None:
-            logger.info(f"Nearest lower grid: {lower}")
+            logger.info(f"Nearest lower grid: {lower:.2f}")
         else:
             logger.info("No lower grid found.")
 
         if upper is not None:
-            logger.info(f"Nearest upper grid: {upper}")
+            logger.info(f"Nearest upper grid: {upper:.2f}")
         else:
             logger.info("No upper grid found.")
 
