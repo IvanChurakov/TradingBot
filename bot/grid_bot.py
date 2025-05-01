@@ -55,6 +55,7 @@ class GridBot:
 
                 close_price = self.market_data.get_current_price(self.settings.symbol)
 
+                logger.info(self.grid_spot_strategy.get_price_zone_info(close_price))
                 order = self.grid_spot_strategy.make_decision(close_price, timestamp=current_datetime_timestamp)
                 if order:
                     logger.info(f"Decision made: {order}")
