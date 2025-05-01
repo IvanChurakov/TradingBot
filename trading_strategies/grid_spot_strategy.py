@@ -63,7 +63,7 @@ class GridSpotStrategy(BaseTradingStrategy):
         elif upper is not None and upper >= current_price > thresholds.upper_sell_threshold:
             logger.info(f"Zone: SELL zone (between {upper} and {thresholds.upper_sell_threshold:.2f})")
         else:
-            logger.info("Zone: TRADE zone (no action)")
+            logger.info("Zone: No-action zone")
 
     def __is_price_within_grid(self, current_price) -> bool:
         if current_price < self.grid_levels.min or current_price > self.grid_levels.max:
