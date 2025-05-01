@@ -48,8 +48,8 @@ class GridSpotStrategy(BaseTradingStrategy):
         upper = thresholds.upper_grid
 
         info = f"Current price: {current_price:.2f}\n"
-        info += f"Nearest lower grid: {lower}\n" if lower is not None else "No lower grid found.\n"
-        info += f"Nearest upper grid: {upper}\n" if upper is not None else "No upper grid found.\n"
+        info += f"Nearest lower grid: {lower:.2f}\n" if lower is not None else "No lower grid found.\n"
+        info += f"Nearest upper grid: {upper:.2f}\n" if upper is not None else "No upper grid found.\n"
 
         if thresholds.lower_grid is not None and thresholds.lower_grid <= current_price < thresholds.lower_buy_threshold:
             info += f"Zone: BUY zone (between {lower} and {thresholds.lower_buy_threshold:.2f})"
