@@ -59,9 +59,9 @@ class GridSpotStrategy(BaseTradingStrategy):
             logger.info("No upper grid found.")
 
         if lower is not None and lower <= current_price < thresholds.lower_buy_threshold:
-            logger.info(f"Zone: BUY zone (between {lower} and {thresholds.lower_buy_threshold:.2f})")
+            logger.info(f"Zone: BUY zone (between {lower:.2f} and {thresholds.lower_buy_threshold:.2f})")
         elif upper is not None and upper >= current_price > thresholds.upper_sell_threshold:
-            logger.info(f"Zone: SELL zone (between {thresholds.upper_sell_threshold:.2f} and {upper})")
+            logger.info(f"Zone: SELL zone (between {thresholds.upper_sell_threshold:.2f} and {upper:.2f})")
         else:
             logger.info(f"Zone: No-action zone (between {thresholds.lower_buy_threshold:.2f} and {thresholds.upper_sell_threshold:.2f})")
 
