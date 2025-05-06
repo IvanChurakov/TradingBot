@@ -129,7 +129,7 @@ class GridSpotStrategy(BaseTradingStrategy):
         sorted_orders = sorted(self.order_manager.get_orders(), key=lambda order: order.price)
 
         active_order = next(
-            (order for order in sorted_orders if (current_price - order.price) * order.amount > 0.12 and order.allow_to_sell),
+            (order for order in sorted_orders if (current_price - order.price) * order.amount > 0.02 and order.allow_to_sell),
             None
         )
 
