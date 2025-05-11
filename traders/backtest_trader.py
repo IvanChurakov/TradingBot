@@ -1,5 +1,5 @@
 from models.order import Order
-from models.order_placement_result import OrderPlacementResult
+from models.order_placement_result import OrderActionResult
 from models.portfolio_balance import PortfolioBalance
 from traders.base_trader import BaseTrader
 
@@ -15,18 +15,21 @@ class BacktestTrader(BaseTrader):
     def is_order_closed(self, order_link_id: str) -> bool:
         pass
 
-    def place_order(self, symbol: str, decision: Order) -> OrderPlacementResult:
+    def place_order(self, symbol: str, decision: Order) -> OrderActionResult:
         if decision.action == "Buy":
             self.balance["USDT"] -= decision.amount * decision.price
 
-            return OrderPlacementResult(success=True, result=f"Buy Order for {symbol} placed successfully.")
+            return OrderActionResult(success=True, result=f"Buy Order for {symbol} placed successfully.")
 
         elif decision.action == "Sell":
             self.balance["USDT"] += decision.amount * decision.price
 
-            return OrderPlacementResult(success=True, result=f"Sell Order for {symbol} placed successfully.")
+            return OrderActionResult(success=True, result=f"Sell Order for {symbol} placed successfully.")
 
-        return OrderPlacementResult(success=False, error_message="Invalid order action.")
+        return OrderActionResult(success=False, error_message="Invalid order action.")
 
     def get_portfolio_balance(self, account_type: str = "UNIFIED") -> PortfolioBalance:
+        pass
+
+    def cancel_order(self, order_link_id: str) -> OrderActionResult:
         pass

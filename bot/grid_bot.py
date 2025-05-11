@@ -60,8 +60,8 @@ class GridBot:
                 if order:
                     logger.info(f"Decision made: {order}")
 
-                    order_placement_result = self.trader.place_order(self.settings.symbol, order)
-                    if order_placement_result and order_placement_result.success:
+                    order_action_result = self.trader.place_order(self.settings.symbol, order)
+                    if order_action_result and order_action_result.success:
                         if order.action == "Buy":
                             self.order_manager.add_order(order)
                             logger.info(f"Buy order recorded in state manager: {order.order_link_id}")

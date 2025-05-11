@@ -1,5 +1,6 @@
 from decimal import Decimal
 from typing import Optional
+from datetime import datetime, timezone, timedelta
 
 import boto3
 from botocore.exceptions import ClientError
@@ -89,7 +90,25 @@ class DynamoDBOrderManager(BaseOrderManager):
 
         for order in active_orders:
             if not order.allow_to_sell:
-                order_placement_result = trader.is_order_closed(order.order_link_id)
-                if order_placement_result and order_placement_result is True:
+                is_order_closed = trader.is_order_closed(order.order_link_id)
+
+                if is_order_closed and is_order_closed is True:
                     logger.info(f"OrderLinkId {order.order_link_id} is closed. Marking as 'allowToSell'.")
                     self.update_order(order.order_link_id, allowToSell=True)
+                else:
+                    created_on = datetime.fromisoformat(order.created_on)
+                    now = datetime.now(timezone.utc)
+
+                    if now - created_on > timedelta(minutes=30):
+                        logger.info(
+                            f"OrderLinkId {order.order_link_id} is still open, but older than 30 minutes. Attempting to cancel.")
+
+                        cancel_result = trader.cancel_order(order.order_link_id)
+
+                        if cancel_result.success:
+                            logger.info(
+                                f"OrderLinkId {order.order_link_id} canceled successfully. Removing record from database.")
+                            self.remove_order(order.order_link_id)
+                        else:
+                            logger.error(
+                                f"Failed to cancel OrderLinkId {order.order_link_id}. Error: {cancel_result.error_message}")

@@ -1,6 +1,6 @@
 from models.coin_balance import CoinBalance
 from models.order import Order
-from models.order_placement_result import OrderPlacementResult
+from models.order_placement_result import OrderActionResult
 from models.portfolio_balance import PortfolioBalance
 from traders.base_trader import BaseTrader
 from utils.logging_utils import setup_logger
@@ -87,7 +87,7 @@ class BybitTrader(BaseTrader):
             logger.error(f"Error fetching open orders: {response.get('retMsg')}")
             return False
 
-    def place_order(self, symbol: str, decision: Order) -> OrderPlacementResult:
+    def place_order(self, symbol: str, decision: Order) -> OrderActionResult:
         logger.info(f"Placing {decision.action} order for {symbol} with orderLinkId {decision.order_link_id}...")
 
         response = self.api_manager.safe_api_call(
@@ -104,15 +104,15 @@ class BybitTrader(BaseTrader):
 
         if response is None:
             logger.error(f"Failed to place order {decision.order_link_id}. No response from API.")
-            return OrderPlacementResult(success=False, error_message="No response from API")
+            return OrderActionResult(success=False, error_message="No response from API")
 
         if response.get("retCode") == 0:
             logger.info(f"Order placed successfully: {response['result']}")
-            return OrderPlacementResult(success=True, result=response["result"])
+            return OrderActionResult(success=True, result=response["result"])
         else:
             error_message = response.get("retMsg", "Unknown error")
             logger.error(f"Error placing order: {error_message}")
-            return OrderPlacementResult(success=False, error_message=error_message)
+            return OrderActionResult(success=False, error_message=error_message)
 
     def get_portfolio_balance(self, account_type="UNIFIED") -> PortfolioBalance:
         logger.info(f"Fetching portfolio balance for accountType={account_type}...")
@@ -177,3 +177,31 @@ class BybitTrader(BaseTrader):
                 total_available_balance=0.0,
                 details=[]
             )
+
+    def cancel_order(self, order_link_id: str) -> OrderActionResult:
+        logger.info(f"Attempting to cancel order with orderLinkId: {order_link_id}...")
+
+        try:
+            response = self.api_manager.safe_api_call(
+                self.api_manager.http_session.cancel_order,
+                category="spot",
+                orderLinkId=order_link_id
+            )
+        except Exception as e:
+            logger.error(f"Error during order cancellation: {e}", exc_info=True)
+            return OrderActionResult(success=False, error_message=str(e))
+
+        if response is None:
+            logger.error("Failed to cancel order. No response from API.")
+            return OrderActionResult(success=False, error_message="No response from API")
+
+        if response.get("retCode") == 0:
+            logger.info(f"Order {order_link_id} successfully canceled: {response.get('result', {})}")
+            return OrderActionResult(
+                success=True,
+                result=response.get("result", {})
+            )
+        else:
+            error_message = response.get("retMsg", "Unknown error")
+            logger.error(f"Error canceling order {order_link_id}: {error_message}")
+            return OrderActionResult(success=False, error_message=error_message)

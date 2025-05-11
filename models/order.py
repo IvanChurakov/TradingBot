@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
@@ -10,7 +11,8 @@ class Order:
             price: float,
             allow_to_sell: bool = False,
             action: str = "",
-            buy_order_link_id: Optional[str] = None
+            buy_order_link_id: Optional[str] = None,
+            created_on: Optional[str] = None
     ):
         self.order_link_id = order_link_id
         self.amount = amount
@@ -18,13 +20,15 @@ class Order:
         self.allow_to_sell = allow_to_sell
         self.action = action
         self.buy_order_link_id = buy_order_link_id
+        self.created_on = created_on or datetime.now(timezone.utc).isoformat()
 
     def to_dict(self) -> dict:
         return {
             "orderLinkId": self.order_link_id,
             "amount": Decimal(str(self.amount)),
             "price": Decimal(str(self.price)),
-            "allowToSell": self.allow_to_sell
+            "allowToSell": self.allow_to_sell,
+            "createdOn": self.created_on
         }
 
     @classmethod
@@ -33,7 +37,8 @@ class Order:
             order_link_id=data["orderLinkId"],
             amount=float(data["amount"]),
             price=float(data["price"]),
-            allow_to_sell=data.get("allowToSell", False)
+            allow_to_sell=data.get("allowToSell", False),
+            created_on=data.get("createdOn")
         )
 
     def __str__(self) -> str:
@@ -44,6 +49,7 @@ class Order:
             f"price={self.price}, "
             f"allowToSell={self.allow_to_sell}, "
             f"action={self.action}, "
-            f"buy_order_link_id={self.buy_order_link_id}"
+            f"buy_order_link_id={self.buy_order_link_id}, "
+            f"createdOn={self.created_on}"
             f")"
         )
